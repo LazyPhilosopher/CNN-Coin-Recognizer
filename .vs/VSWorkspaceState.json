@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\core",
+    "\\gui",
+    "\\gui\\frames",
+    "\\img",
+    "\\utils"
+  ],
+  "SelectedNode": "\\utils\\video.py",
+  "PreviewInSolutionExplorer": false
+}
