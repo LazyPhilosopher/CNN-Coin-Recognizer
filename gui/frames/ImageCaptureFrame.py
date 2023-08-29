@@ -1,4 +1,6 @@
+from distutils.sysconfig import customize_compiler
 import math
+from PyQt5 import QtGui
 import cv2
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainterPath, QPen, QPixmap, QImage
@@ -53,10 +55,23 @@ class NIPGraphicScene(QGraphicsScene):
         painter.drawPath(top_triangle)
 
 
-class ImageCaptureFrame(QMainWindow):
-    def __init__(self, parent=None, window_name=None):
-        super().__init__()
+class SaveImageButton(QPushButton):
+    def __init__(self,  custom_signals, pixmap_item):
+        super(SaveImageButton, self).__init__(text="Click Me")
+        self.custom_signals = custom_signals
+        self.pixmap_item = pixmap_item
+        
+    def mousePressEvent(self, e) -> None:
+        super().mousePressEvent(e)
+        self.pixmap_item.pixmap().save("test.jpg")
+        # self.custom_signals.save_picture.emit(self.pixmap)
+        print("Save Button clicked!")
 
+
+class ImageCaptureFrame(QMainWindow):
+    def __init__(self, parent=None, custom_signals=None):
+        super().__init__()
+        self.custom_signals = custom_signals
         self.setWindowTitle("QGraphicsView Example")
         self.setGeometry(0, 0, 600, 400)  # Set a larger initial window size
 
@@ -65,34 +80,31 @@ class ImageCaptureFrame(QMainWindow):
         layout = QGridLayout(self.central_widget)
 
         self.graphics_view = QGraphicsView()
-        self.scene = QGraphicsScene()
-
         self.graphics_view.setSceneRect(0, 0, 250, 250)  # Limit scene size to 250x250
-        
-        # Load an image using QPixmap
-        pixmap = QPixmap("img\\Debugempty.png")  # Replace with the actual image path
-        pixmap = pixmap.scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation) 
-        self.pixmap_item = QGraphicsPixmapItem(pixmap)
-        self.scene.addItem(self.pixmap_item)
-
-        self.scene.addRect(QRectF(0, 0, 250, 250))
-        self.graphics_view.setScene(self.scene)
-
         layout.addWidget(self.graphics_view, 0, 1, Qt.AlignTop | Qt.AlignLeft)  # Align in upper-left corner
         
+        self.scene = QGraphicsScene()
+        self.scene.addRect(QRectF(0, 0, 250, 250))
+        self.graphics_view.setScene(self.scene)
+        
+        pixmap = QPixmap("img\\Debugempty.png")
+        self.pixmap_item = QGraphicsPixmapItem(pixmap)
+        self.sized_pixmap = QGraphicsPixmapItem(pixmap.scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.scene.addItem(self.sized_pixmap)
+        
+        # Side Layout setup
         side_layout = QVBoxLayout()
+        layout.addLayout(side_layout, 0, 1, Qt.AlignTop | Qt.AlignCenter)  # Align in upper-right corner
 
         # Dropdown Menu
         self.dropdown = QComboBox()
-        self.dropdown.addItem("Option 1")
-        self.dropdown.addItem("Option 2")
+        self.dropdown.addItem("Camera 1")
+        self.dropdown.addItem("Camera 2")
         side_layout.addWidget(self.dropdown)
 
         # Button
-        self.button = QPushButton("Click Me")
+        self.button = SaveImageButton(custom_signals=self.custom_signals, pixmap_item=self.pixmap_item)
         side_layout.addWidget(self.button)
-
-        layout.addLayout(side_layout, 0, 1, Qt.AlignTop | Qt.AlignCenter)  # Align in upper-right corner
 
     def set_picture(self, picture):
         # picture = cv2.cvtColor(picture, cv2.COLOR_BGR2RGB)
@@ -102,11 +114,9 @@ class ImageCaptureFrame(QMainWindow):
         
         # create qpixmap from qimage
         pixmap = QPixmap.fromImage(qimage)
-        # pixmap = pixmap.scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation) 
+        self.pixmap_item.setPixmap(pixmap)
+        self.sized_pixmap.setPixmap(pixmap.scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         # pixmap_item = QGraphicsPixmapItem(pixmap)
-        self.pixmap_item.setPixmap(pixmap) 
+        # self.sized_pixmap.setPixmap(self.sized_pixmap) 
         self.scene.update()
             
-
-
-

@@ -31,10 +31,12 @@ class VideoStream(QObject):  # Derive from QObject to use signals
             if not grabbed:
                 self.stop()
                 return
-
+            
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.queue.put(frame)
-            self.queue.task_done()  # Mark the frame as processed
+            # self.queue.task_done()  # Mark the frame as processed
             self.refresh_signal.emit(self.read())  # Emit the frame through the signal
+            # print(f"Size of queue: {self.queue.qsize()}")
 
     def read(self):
         return self.queue.get()
