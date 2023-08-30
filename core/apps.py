@@ -39,12 +39,15 @@ class ImageRefreshModule:
 class ImageCaptureApp:
     def __init__(self) -> None:
         app = QApplication([])
-        self.main_window = ImageCaptureFrame(custom_signals=custom_signals)
-        self.vs = VideoStream(custom_signals.frame_available, device=0).start()
+        
+        self.vs = VideoStream(custom_signals.frame_available, device=0)
+        self.main_window = ImageCaptureFrame(custom_signals=custom_signals, list_camera_ids_list=self.vs.get_camera_ids_list())
+        self.vs.start()
         self.image_refresh_module = ImageRefreshModule(self.main_window, self.vs)
         self.cv2_module = CV2Module()
         
         custom_signals.frame_available.connect(self.frame_update)
+        custom_signals.camera_reinit_signal.connect(self.video_stream_reinit)
         
         self.main_window.show()
         app.exec_()          
@@ -53,4 +56,11 @@ class ImageCaptureApp:
         (corners, _, _) = self.cv2_module.detect_markers_on_frame(frame)
         frame = self.cv2_module.colorize_markers_on_frame(frame=frame, corners=corners)
         self.image_refresh_module.set_picture(frame)
+        
+    def video_stream_reinit(self, camera_id = 0):
+        self.vs.stop()
+        self.vs = VideoStream(custom_signals.frame_available, device=camera_id).start()
+        
+    
+        
         

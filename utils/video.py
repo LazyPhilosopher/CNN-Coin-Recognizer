@@ -48,3 +48,19 @@ class VideoStream(QObject):  # Derive from QObject to use signals
         self.stopped = True
         self.stream.release()
         
+    def get_camera_ids_list(self):
+        index = 0
+        arr = []
+        while True:
+            try:
+                cap = cv2.VideoCapture(index)
+                if not cap.read()[0]:
+                    break
+                else:
+                    arr.append(index)
+                cap.release()
+                index += 1
+            except:
+                break
+        return arr
+        

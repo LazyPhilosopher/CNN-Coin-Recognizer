@@ -1,7 +1,8 @@
 from distutils.sysconfig import customize_compiler
+from hmac import new
 import math
-from PyQt5 import QtGui
-import cv2
+# from PyQt5 import QtGui
+# import cv2
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainterPath, QPen, QPixmap, QImage
 from PyQt5.QtCore import QPointF, QRectF
@@ -16,10 +17,11 @@ from PyQt5.QtWidgets import (
     QGraphicsLineItem,
     QGraphicsPixmapItem,
     QComboBox,
-    QPushButton
+    QPushButton,
+    QLineEdit
 )
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from utils.video import VideoStream
+# from utils.video import VideoStream
 
 class NIPGraphicScene(QGraphicsScene):
 
@@ -57,7 +59,7 @@ class NIPGraphicScene(QGraphicsScene):
 
 class SaveImageButton(QPushButton):
     def __init__(self,  custom_signals, pixmap_item):
-        super(SaveImageButton, self).__init__(text="Click Me")
+        super(SaveImageButton, self).__init__(text="Save image")
         self.custom_signals = custom_signals
         self.pixmap_item = pixmap_item
         
@@ -65,13 +67,25 @@ class SaveImageButton(QPushButton):
         super().mousePressEvent(e)
         self.pixmap_item.pixmap().save("test.jpg")
         # self.custom_signals.save_picture.emit(self.pixmap)
-        print("Save Button clicked!")
+        # print("Save Button clicked!")
 
+class NewCoinButton(QPushButton):
+    def __init__(self,  custom_signals, pixmap_item):
+        super(NewCoinButton, self).__init__(text="Create new coin")
+        self.custom_signals = custom_signals
+        self.pixmap_item = pixmap_item
+        
+    def mousePressEvent(self, e) -> None:
+        super().mousePressEvent(e)
+        self.pixmap_item.pixmap().save("test.jpg")
+        # self.custom_signals.save_picture.emit(self.pixmap)
+        # print("New Coin Button clicked!")
 
 class ImageCaptureFrame(QMainWindow):
-    def __init__(self, parent=None, custom_signals=None):
+    def __init__(self, parent=None, custom_signals=None, list_camera_ids_list=None):
         super().__init__()
         self.custom_signals = custom_signals
+        self.list_camera_ids_list = list_camera_ids_list
         self.setWindowTitle("QGraphicsView Example")
         self.setGeometry(0, 0, 600, 400)  # Set a larger initial window size
 
@@ -94,15 +108,26 @@ class ImageCaptureFrame(QMainWindow):
         
         # Side Layout setup
         side_layout = QVBoxLayout()
-        layout.addLayout(side_layout, 0, 1, Qt.AlignTop | Qt.AlignCenter)  # Align in upper-right corner
+
+        layout.addLayout(side_layout, 0, 2, Qt.AlignTop | Qt.AlignCenter)  # Align in upper-right corner
 
         # Dropdown Menu
         self.dropdown = QComboBox()
-        self.dropdown.addItem("Camera 1")
-        self.dropdown.addItem("Camera 2")
+        for camera in self.list_camera_ids_list:
+            self.dropdown.addItem(f"Camera {camera}")
+        self.dropdown.activated.connect(self.handleDropdownActivated)
         side_layout.addWidget(self.dropdown)
+        
+        # Coin name field
+        self.coin_name_textbox = QLineEdit(self)
+        self.coin_name_textbox.setFixedWidth(150)  # Set the desired width
+        side_layout.addWidget(self.coin_name_textbox)
 
-        # Button
+        # New coin button
+        self.button = NewCoinButton(custom_signals=self.custom_signals, pixmap_item=self.pixmap_item)
+        side_layout.addWidget(self.button)
+
+        # Save image button
         self.button = SaveImageButton(custom_signals=self.custom_signals, pixmap_item=self.pixmap_item)
         side_layout.addWidget(self.button)
 
@@ -119,4 +144,7 @@ class ImageCaptureFrame(QMainWindow):
         # pixmap_item = QGraphicsPixmapItem(pixmap)
         # self.sized_pixmap.setPixmap(self.sized_pixmap) 
         self.scene.update()
+        
+    def handleDropdownActivated(self, index):
+        self.custom_signals.camera_reinit_signal.emit(index)
             
