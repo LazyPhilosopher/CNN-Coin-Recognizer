@@ -1,0 +1,76 @@
+{
+	"params":
+	{
+		"test1": 1,
+		"test2": 2,
+		"test3": 3
+	},
+	"coins":
+	{
+		"years":
+		{
+			"2010":
+			{
+				"Great Britain":{
+					"1 Souvereign":
+					{
+						"coin_params": {
+							"weight": 1
+						},
+						"training_params": {
+							"coin_param_1": 1,
+							"coin_param_2": 2,
+							"coin_param_3": 3
+						},
+						"pictures":{
+							"img1.png":
+							{
+								"vertices":[[0, 0], [10, 10], [0, 30]]
+							},
+							"img2.png":
+							{
+								"vertices":[[0, 0], [10, 10], [0, 30]]
+							},
+							"img3.png":
+							{
+								"vertices":[[0, 0], [10, 10], [0, 30]]
+							}
+						}
+					}
+				}
+			},
+			"30 B.C.":
+			{
+				"Rome":
+				{
+					"Denarius":
+					{
+						"coin_params": {
+							"weight": 1
+						},
+						"training_params": {
+							"coin_param_1": 1,
+							"coin_param_2": 2,
+							"coin_param_3": 3
+						},
+						"pictures":
+						{
+							"img1.png":
+							{
+								"vertices":[[0, 0], [10, 10], [0, 30]]
+							},
+							"img2.png":
+							{
+								"vertices":[[0, 0], [10, 10], [0, 30]]
+							},
+							"img3.png":
+							{
+								"vertices":[[0, 0], [10, 10], [0, 30]]
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

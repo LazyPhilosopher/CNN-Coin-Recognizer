@@ -1,0 +1,41 @@
+{
+    "params": {
+        "test1": 1,
+        "test2": 2,
+        "test3": 3
+    },
+    "coins": {
+        "years": {
+            "2010": {
+                "great britain": {
+                    "1 Souvereign": {
+                        "training_params": {
+                            "coin_param_1": 1,
+                            "coin_param_2": 2,
+                            "coin_param_3": 3
+                        },
+                        "coin_params": {
+                            "weight": 1
+                        },
+                        "pictures": {}
+                    }
+                }
+            },
+            "30 b.c.": {
+                "rome": {
+                    "Denarius": {
+                        "training_params": {
+                            "coin_param_1": 1,
+                            "coin_param_2": 2,
+                            "coin_param_3": 3
+                        },
+                        "coin_params": {
+                            "weight": 1
+                        },
+                        "pictures": {}
+                    }
+                }
+            }
+        }
+    }
+}
