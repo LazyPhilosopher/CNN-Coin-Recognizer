@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>606</width>
+    <width>661</width>
     <height>401</height>
    </rect>
   </property>
@@ -32,32 +32,6 @@
     <number>1</number>
    </property>
   </widget>
-  <widget class="QComboBox" name="camera_swich_combo_box">
-   <property name="geometry">
-    <rect>
-     <x>470</x>
-     <y>10</y>
-     <width>131</width>
-     <height>21</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_2">
-   <property name="geometry">
-    <rect>
-     <x>410</x>
-     <y>10</y>
-     <width>61</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Camera</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-  </widget>
   <widget class="Line" name="line_2">
    <property name="geometry">
     <rect>
@@ -76,7 +50,7 @@
     <rect>
      <x>420</x>
      <y>260</y>
-     <width>181</width>
+     <width>231</width>
      <height>131</height>
     </rect>
    </property>
@@ -105,62 +79,176 @@
     <rect>
      <x>460</x>
      <y>230</y>
-     <width>141</width>
+     <width>191</width>
      <height>22</height>
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="new_coin_button">
+  <widget class="QTabWidget" name="tabWidget">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>420</x>
-     <y>100</y>
-     <width>181</width>
-     <height>31</height>
+     <y>10</y>
+     <width>231</width>
+     <height>211</height>
     </rect>
    </property>
-   <property name="text">
-    <string>New Coin</string>
+   <property name="currentIndex">
+    <number>0</number>
    </property>
-  </widget>
-  <widget class="QPushButton" name="save_photo_button">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>40</y>
-     <width>181</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>New Photo</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="mark_button">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>140</y>
-     <width>181</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Mark Coin Edges</string>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="checkBox">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>70</y>
-     <width>171</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>auto-mark coin edges</string>
-   </property>
+   <widget class="QWidget" name="camera_tab">
+    <attribute name="title">
+     <string>Camera</string>
+    </attribute>
+    <widget class="QComboBox" name="camera_swich_combo_box">
+     <property name="geometry">
+      <rect>
+       <x>90</x>
+       <y>10</y>
+       <width>131</width>
+       <height>21</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>61</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Camera</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="save_photo_button">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>211</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>New Photo</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="auto_mark_edges_checkbox">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>30</y>
+       <width>221</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>auto-mark coin edges</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="new_coin_button">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>100</y>
+       <width>211</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>New Coin</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="color_correction_button">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>140</y>
+       <width>211</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Automatic Color Correction</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="gallery_tab">
+    <attribute name="title">
+     <string>Gallery</string>
+    </attribute>
+    <widget class="QPushButton" name="mark_button">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>211</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Mark Coin Edges</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="next_gallery_photo_button">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>10</y>
+       <width>101</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Next Photo</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="previous_gallery_photo_button">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>91</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Previous Photo</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="coin_tab">
+    <attribute name="title">
+     <string>Coin </string>
+    </attribute>
+   </widget>
   </widget>
  </widget>
  <resources/>

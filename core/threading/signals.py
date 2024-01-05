@@ -1,11 +1,13 @@
 from PySide6.QtCore import Signal, QObject
 
+from core.catalog.Coin import Coin
+
 
 class ThreadingSignals(QObject):
 
     frame_available = Signal(object)
 
-    save_picture = Signal(object)
+    s_save_picture_button_pressed = Signal()
 
     # passing camera index
     camera_reinit_signal = Signal(int)
@@ -19,3 +21,9 @@ class ThreadingSignals(QObject):
     s_append_info_text = Signal(str)
 
     s_catalog_changed = Signal()
+
+    s_active_coin_changed = Signal(Coin)
+
+    s_active_tab_changed = Signal()
+
+    s_coin_photo_id_changed = Signal(int)

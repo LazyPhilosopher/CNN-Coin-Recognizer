@@ -17,7 +17,20 @@
                         "coin_params": {
                             "weight": 1
                         },
-                        "pictures": {}
+                        "pictures": {
+                            "0736867c-910e-4698-bf41-029163dc9bfe.png": {
+                                "vertices": []
+                            },
+                            "48a7fd7b-6a38-4d5c-a1e4-172eebb6ba2f.png": {
+                                "vertices": []
+                            },
+                            "53e97813-a32b-4b08-a761-076cc3f555b1.png": {
+                                "vertices": []
+                            },
+                            "ba413e48-e7b7-490b-8962-d17d03703514.png": {
+                                "vertices": []
+                            }
+                        }
                     }
                 }
             },
@@ -32,7 +45,27 @@
                         "coin_params": {
                             "weight": 1
                         },
-                        "pictures": {}
+                        "pictures": {
+                            "919de1e8-589f-42d0-9dbd-25f0abacd429.png": {
+                                "vertices": []
+                            }
+                        }
+                    }
+                }
+            },
+            "test": {
+                "test": {
+                    "test": {
+                        "training_params": {},
+                        "coin_params": {
+                            "weight": "test",
+                            "content": ""
+                        },
+                        "pictures": {
+                            "b1a78509-1344-4c3d-89bc-b29f95e0cccb.png": {
+                                "vertices": []
+                            }
+                        }
                     }
                 }
             }
