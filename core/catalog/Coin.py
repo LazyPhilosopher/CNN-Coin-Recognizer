@@ -27,12 +27,12 @@ class Coin:
         return True
 
     def add_vertices_to_picture(self, picture_file: str, vertices: list[list[int, int]]) -> bool:
-        vertices_list: list[tuple[int, int]] = []
+        vertices_list: list[tuple[float, float]] = []
 
         for vertex in vertices:
-            x: int = vertex[0]
-            y: int = vertex[1]
-            if not isinstance(x, int) or not isinstance(y, int):
+            x: float = vertex[0]
+            y: float = vertex[1]
+            if not isinstance(x, float) or not isinstance(y, float):
                 return False
             vertices_list.append((x, y))
 

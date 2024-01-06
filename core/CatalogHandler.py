@@ -72,7 +72,7 @@ class CoinCatalogHandler:
                                     return False
                             for picture_file, attributes in coin_attributes["pictures"].items():
                                 coin.add_picture(picture_file=picture_file)
-                                vertices: list[list[int, int]] = attributes["vertices"]
+                                vertices: list[list[float, float]] = attributes["vertices"]
                                 passed = coin.add_vertices_to_picture(picture_file=picture_file, vertices=vertices)
                                 if not passed:
                                     return False
@@ -176,44 +176,47 @@ class CoinCatalogHandler:
             self.active_coin.add_picture(f"{picture_file}")
             self.write_catalog()
 
-    def get_nth_coin_photo_from_catalog(self, active_coin_photo_id: int) -> QPixmap:
+    def get_nth_coin_photo_from_catalog(self, active_coin_photo_id: int) -> tuple[QPixmap, list[tuple[float, float]]]:
         coin_dir_path: str = os.path.join(self.catalog_path,
                                           self.active_coin.year,
                                           self.active_coin.country,
                                           self.active_coin.name)
-        photo_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
-        active_coin_photo_id = active_coin_photo_id % len(photo_file_list)
-        photo_file: str = photo_file_list[active_coin_photo_id]
-        photo = QPixmap(os.path.join(coin_dir_path, photo_file))
+        png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
+        coin_picture_files: list[str] = [file for file in self.active_coin.pictures
+                                         if file in png_file_list]
+        active_coin_photo_id = active_coin_photo_id % len(coin_picture_files)
+        # photo_file: str = photo_file_list[active_coin_photo_id]
+        photo = QPixmap(os.path.join(coin_dir_path, coin_picture_files[active_coin_photo_id]))
+        vertices: list[tuple[int, int]] = self.active_coin.pictures[coin_picture_files[active_coin_photo_id]]["vertices"]
 
         # Check if the image is loaded successfully
         if photo.isNull():
-            print(f"Failed to load image from {photo_file}")
+            print(f"Failed to load image from {coin_picture_files[0]}")
         else:
-            print(f"Image loaded successfully from {photo_file}")
+            print(f"Image loaded successfully from {coin_picture_files[0]}")
 
         # Points as percent of the pixmap's dimensions [(x1, y1), (x2, y2), ...]
-        points_percent = [(0.25, 0.25), (0.25, 0.5), (0.5, 0.5), (0.5, 0.25)]
+        # points_percent = [(0.25, 0.25), (0.25, 0.5), (0.5, 0.5), (0.5, 0.25)]
 
         # Convert percentage coordinates to pixel coordinates
-        points_pixel = [(x * photo.width(), y * photo.height()) for x, y in points_percent]
+        # points_pixel = [(x * photo.width(), y * photo.height()) for x, y in points_percent]
 
         # Create a QPainter object and start the painting process
-        painter = QPainter(photo)
-        painter.setPen(QPen(Qt.black, 3))  # Set pen color and thickness
-
-        # Draw lines between the points
-        for i in range(len(points_pixel) - 1):
-            painter.drawLine(points_pixel[i][0], points_pixel[i][1],
-                             points_pixel[i + 1][0], points_pixel[i + 1][1])
-
-        # Optionally, close the shape by drawing a line between the last and first point
-        painter.drawLine(points_pixel[-1][0], points_pixel[-1][1],
-                         points_pixel[0][0], points_pixel[0][1])
+        # painter = QPainter(photo)
+        # painter.setPen(QPen(Qt.black, 3))  # Set pen color and thickness
+        #
+        # # Draw lines between the points
+        # for i in range(len(points_pixel) - 1):
+        #     painter.drawLine(points_pixel[i][0], points_pixel[i][1],
+        #                      points_pixel[i + 1][0], points_pixel[i + 1][1])
+        #
+        # # Optionally, close the shape by drawing a line between the last and first point
+        # painter.drawLine(points_pixel[-1][0], points_pixel[-1][1],
+        #                  points_pixel[0][0], points_pixel[0][1])
 
         # End the painting process
-        painter.end()
-        return photo
+        # painter.end()
+        return photo, vertices
 
 
     # def post_init(self):

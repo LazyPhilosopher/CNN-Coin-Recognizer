@@ -1,15 +1,17 @@
-from PySide6.QtGui import QImage
+from PySide6.QtCore import QPoint
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication
 
 from core.CatalogHandler import CoinCatalogHandler
 from core.catalog.Coin import Coin
-# from core.signals import CustomSignals
-# from utils.CV2Module import CV2Module
-
 from core.catalog.ImageCollector import ImageCollector
-from core.video.video import VideoStream
 from core.cv2.CV2Module import CV2Module
 from core.threading.signals import ThreadingSignals
+from core.ui.DraggableCrossesOverlay import DraggableCrossesOverlay
+from core.video.video import VideoStream
+
+# from core.signals import CustomSignals
+# from utils.CV2Module import CV2Module
 
 
 signals = ThreadingSignals()
@@ -29,6 +31,8 @@ class ImageCaptureApp:
         self.current_coin_photo_id: int = 0
 
         self.cv2_module = CV2Module()
+        self.overlay = DraggableCrossesOverlay(self.main_window.image_label)
+        self.overlay.setGeometry(self.main_window.image_label.geometry())
 
         # signals.frame_available.connect(self.frame_update)
         signals.s_active_coin_changed.connect(self.change_active_coin)
@@ -36,7 +40,7 @@ class ImageCaptureApp:
         signals.camera_reinit_signal.connect(self.video_stream_reinit)
         signals.s_active_tab_changed.connect(self.tab_change_routine)
 
-        signals.s_coin_photo_id_changed.connect(self.coin_photo_changed)
+        signals.s_coin_photo_id_changed.connect(self.show_catalog_coin_photo)
 
         self.main_window.show()
         self.refresh_coins_list()
@@ -80,9 +84,16 @@ class ImageCaptureApp:
         signals.s_append_info_text.emit(f"Active coin: {self.catalog_handler.active_coin.name}")
         self.tab_change_routine()
 
-    def coin_photo_changed(self, step: int = 0):
+    def show_catalog_coin_photo(self, step: int = 0):
         self.current_coin_photo_id += step
-        coin_image: QImage = self.catalog_handler.get_nth_coin_photo_from_catalog(self.current_coin_photo_id)
+        coin_image, vertices = self.catalog_handler.get_nth_coin_photo_from_catalog(self.current_coin_photo_id)
+        width = self.main_window.image_label.width()
+        height = self.main_window.image_label.height()
+        crosses = [QPoint(x*width, y*height) for (x, y) in vertices]
+
+        self.overlay.crosses = crosses
+        self.overlay.show()
+
         self.main_window.set_image(coin_image)
 
     def tab_change_routine(self):
@@ -93,7 +104,8 @@ class ImageCaptureApp:
             self.current_coin_photo_id = 0
             signals.s_append_info_text.emit(f"gallery tab enabled")
             signals.frame_available.disconnect(self.frame_update)
-            self.coin_photo_changed(step=0)
+            # taking coin photo from gallery
+            self.show_catalog_coin_photo(step=0)
 
     def frame_update(self, frame):
         (corners, _, _) = self.cv2_module.detect_markers_on_frame(frame)
