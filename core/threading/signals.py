@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal, QObject
+from PySide6.QtCore import Signal, QObject, QPoint
 
 from core.catalog.Coin import Coin
 
@@ -27,3 +27,7 @@ class ThreadingSignals(QObject):
     s_active_tab_changed = Signal()
 
     s_coin_photo_id_changed = Signal(int)
+
+    s_coin_vertices_update = Signal(list)
+
+    s_reset_vertices = Signal()

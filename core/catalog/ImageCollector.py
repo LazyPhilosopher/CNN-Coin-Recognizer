@@ -18,7 +18,6 @@ class ImageCollector(QWidget, Ui_w_ImageCollector):
         self.image_label.setGeometry(0, 0, self.video_frame.width(), self.video_frame.height())
         self.image_label.setScaledContents(True)  # Ensure image scales with QLabel
         self.image_label.setPixmap(QPixmap("data\\debug_img.png"))
-        self.mark_button.setEnabled(False)
         self.new_coin_window = None
 
         self._coin_list: list[Coin] = None
@@ -35,6 +34,8 @@ class ImageCollector(QWidget, Ui_w_ImageCollector):
         self.signals.s_append_info_text.connect(self.append_info_text)
         self.color_correction_button.pressed.connect(self.color_correction_routine)
         self.tabWidget.currentChanged.connect(self.tab_switch_routine)
+
+        self.vertices_reset_button.pressed.connect(self.mark_reset_button_routine)
 
     def refresh_camera_combo_box(self, camera_list: list[str]):
         self.camera_swich_combo_box.clear()
@@ -102,3 +103,6 @@ class ImageCollector(QWidget, Ui_w_ImageCollector):
 
     def previous_photo_routine(self):
         self.signals.s_coin_photo_id_changed.emit(-1)
+
+    def mark_reset_button_routine(self):
+        self.signals.s_reset_vertices.emit()

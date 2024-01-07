@@ -218,6 +218,20 @@ class CoinCatalogHandler:
         # painter.end()
         return photo, vertices
 
+    def set_coin_photo_vertices(self, photo_id: int, vertices_coordinates: list[tuple[int, int]]):
+        coin_dir_path: str = os.path.join(self.catalog_path,
+                                          self.active_coin.year,
+                                          self.active_coin.country,
+                                          self.active_coin.name)
+        png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
+        coin_picture_files: list[str] = [file for file in self.active_coin.pictures
+                                         if file in png_file_list]
+        photo_id = photo_id % len(coin_picture_files)
+        # photo_file: str = photo_file_list[active_coin_photo_id]
+        photo = QPixmap(os.path.join(coin_dir_path, coin_picture_files[photo_id]))
+        self.active_coin.pictures[coin_picture_files[photo_id]][
+            "vertices"] = vertices_coordinates
+
 
     # def post_init(self):
     #     if not os.path.exists(self.catalog_dict_path):

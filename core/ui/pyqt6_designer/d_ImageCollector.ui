@@ -204,7 +204,7 @@
     <attribute name="title">
      <string>Gallery</string>
     </attribute>
-    <widget class="QPushButton" name="mark_button">
+    <widget class="QPushButton" name="vertices_reset_button">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -214,7 +214,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Mark Coin Edges</string>
+      <string>Reset Coin Vertices</string>
      </property>
     </widget>
     <widget class="QPushButton" name="next_gallery_photo_button">
