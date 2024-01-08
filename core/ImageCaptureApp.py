@@ -85,7 +85,9 @@ class ImageCaptureApp:
         self.catalog_handler.set_active_coin(new_active_coin)
         self.refresh_coins_list()
         signals.s_append_info_text.emit(f"Active coin: {self.catalog_handler.active_coin.name}")
-        self.show_catalog_coin_photo(step=0)
+        if self.main_window.gallery_tab.isVisible():
+            if len(self.catalog_handler.get_active_coin_dir_picture_files()) > 0:
+                self.show_catalog_coin_photo(step=0)
         # self.tab_change_routine()
 
     def show_catalog_coin_photo(self, step: int = 0):
@@ -114,7 +116,8 @@ class ImageCaptureApp:
             except:
                 pass
             # taking coin photo from gallery
-            self.show_catalog_coin_photo(step=0)
+            if len(self.catalog_handler.get_active_coin_dir_picture_files()) > 0:
+                self.show_catalog_coin_photo(step=0)
 
     def frame_update(self, frame):
         # if self.main_window.camera_tab.isVisible():

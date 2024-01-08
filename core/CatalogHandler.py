@@ -24,7 +24,7 @@ class CoinCatalogHandler:
         # self.active_catalog = {}
 
         # project_root = 'C:\\Users\\Call_me_Utka\\Desktop\\OpenCV2-Coin-Recognizer'
-        project_root = 'C:\\Users\\Call_me_Utka\\Desktop\\OpenCV2-Coin-Recognizer'
+        project_root = 'C:\\Users\\Call_me_Utka\\Downloads\\OpenCV2-Coin-Recognizer'
         self.catalog_path = os.path.join(project_root, "coin_catalog")
         self.signals.new_coin_created.connect(self.add_new_coin_to_catalog)
         # self.current_photo_id: int = 0
@@ -145,8 +145,9 @@ class CoinCatalogHandler:
             if coin.country not in self.coin_catalog_dict[coin.year]:
                 self.coin_catalog_dict[coin.year][coin.country] = {}
 
-            self.coin_catalog_dict[year][country][coin.name] = coin
+            self.coin_catalog_dict[coin.year][coin.country][coin.name] = coin
             self.write_catalog()
+            self.check_catalog_dir()
             self.signals.info_signal.emit(True, {"receiver_id": coin_info_dictionary["sender_id"]})
             self.signals.s_catalog_changed.emit()
         except Exception as ex:
@@ -176,24 +177,32 @@ class CoinCatalogHandler:
             self.active_coin.add_picture(f"{picture_file}")
             self.write_catalog()
 
-    def get_nth_coin_photo_from_catalog(self, active_coin_photo_id: int) -> tuple[QPixmap, list[tuple[float, float]]]:
+    def get_active_coin_dir_picture_files(self) -> list[str]:
         coin_dir_path: str = os.path.join(self.catalog_path,
                                           self.active_coin.year,
                                           self.active_coin.country,
                                           self.active_coin.name)
         png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
-        coin_picture_files: list[str] = [file for file in self.active_coin.pictures
-                                         if file in png_file_list]
-        active_coin_photo_id = active_coin_photo_id % len(coin_picture_files)
-        # photo_file: str = photo_file_list[active_coin_photo_id]
-        photo = QPixmap(os.path.join(coin_dir_path, coin_picture_files[active_coin_photo_id]))
-        vertices: list[tuple[int, int]] = self.active_coin.pictures[coin_picture_files[active_coin_photo_id]]["vertices"]
-
-        # Check if the image is loaded successfully
-        if photo.isNull():
-            print(f"Failed to load image from {coin_picture_files[0]}")
+        return [file for file in self.active_coin.pictures if file in png_file_list]
+    def get_nth_coin_photo_from_catalog(self, active_coin_photo_id: int) -> tuple[QPixmap, list[tuple[float, float]]]:
+        coin_dir_path: str = os.path.join(self.catalog_path,
+                                          self.active_coin.year,
+                                          self.active_coin.country,
+                                          self.active_coin.name)
+        coin_picture_files = self.get_active_coin_dir_picture_files()
+        if len(coin_picture_files) > 0:
+            active_coin_photo_id = active_coin_photo_id % len(coin_picture_files)
+            # photo_file: str = photo_file_list[active_coin_photo_id]
+            photo = QPixmap(os.path.join(coin_dir_path, coin_picture_files[active_coin_photo_id]))
+            vertices: list[tuple[int, int]] = self.active_coin.pictures[coin_picture_files[active_coin_photo_id]][
+                "vertices"]
+            # Check if the image is loaded successfully
+            if photo.isNull():
+                print(f"Failed to load image from {coin_picture_files[0]}")
+            else:
+                print(f"Image loaded successfully from {coin_picture_files[0]}")
         else:
-            print(f"Image loaded successfully from {coin_picture_files[0]}")
+            photo = QPixmap("data\\debug_img.png")
 
         # Points as percent of the pixmap's dimensions [(x1, y1), (x2, y2), ...]
         # points_percent = [(0.25, 0.25), (0.25, 0.5), (0.5, 0.5), (0.5, 0.25)]
