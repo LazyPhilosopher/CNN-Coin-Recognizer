@@ -104,17 +104,17 @@ class Ui_w_ImageCollector(object):
     def retranslateUi(self, w_ImageCollector):
         w_ImageCollector.setWindowTitle(QCoreApplication.translate("w_ImageCollector", u"Form", None))
         self.plainTextEdit.setPlainText("")
-        self.label.setText(QCoreApplication.translate("w_ImageCollector", u"Coin", None))
+        self.label.setText(QCoreApplication.translate("w_ImageCollector", u"Coin.py", None))
         self.label_2.setText(QCoreApplication.translate("w_ImageCollector", u"Camera", None))
         self.save_photo_button.setText(QCoreApplication.translate("w_ImageCollector", u"New Photo", None))
         self.auto_mark_edges_checkbox.setText(QCoreApplication.translate("w_ImageCollector", u"auto-mark coin edges", None))
-        self.new_coin_button.setText(QCoreApplication.translate("w_ImageCollector", u"New Coin", None))
+        self.new_coin_button.setText(QCoreApplication.translate("w_ImageCollector", u"New Coin.py", None))
         self.color_correction_button.setText(QCoreApplication.translate("w_ImageCollector", u"Automatic Color Correction", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.camera_tab), QCoreApplication.translate("w_ImageCollector", u"Camera", None))
-        self.vertices_reset_button.setText(QCoreApplication.translate("w_ImageCollector", u"Reset Coin Vertices", None))
+        self.vertices_reset_button.setText(QCoreApplication.translate("w_ImageCollector", u"Reset Coin.py Vertices", None))
         self.next_gallery_photo_button.setText(QCoreApplication.translate("w_ImageCollector", u"Next Photo", None))
         self.previous_gallery_photo_button.setText(QCoreApplication.translate("w_ImageCollector", u"Previous Photo", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.gallery_tab), QCoreApplication.translate("w_ImageCollector", u"Gallery", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.coin_tab), QCoreApplication.translate("w_ImageCollector", u"Coin ", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.coin_tab), QCoreApplication.translate("w_ImageCollector", u"Coin.py ", None))
     # retranslateUi
 
