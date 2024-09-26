@@ -8,6 +8,7 @@ class Modules(Enum):
     VIDEO_STREAM = 2
     CATALOG_HANDLER = 3
     GALLERY_WINDOW = 4
+    DRAGGABLE_CROSS_OVERLAY = 5
 
 
 class RequestBase:

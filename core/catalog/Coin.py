@@ -12,7 +12,7 @@ class Coin:
         self.name = name
         self.training_params = {}
         self.pictures = {}
-        self.coin_params= {}
+        self.coin_params = {}
 
     def add_training_param(self, param_name: str, value: int):
         self.training_params[param_name] = value

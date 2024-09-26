@@ -1,8 +1,9 @@
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, QPoint
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMainWindow, QLabel
 
 from core.catalog.Coin import Coin
+from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.headers import RequestBase
 from core.qt_threading.headers.RequestBase import Modules
@@ -38,6 +39,8 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.coin_catalog_name_dropbox.currentIndexChanged.connect(self.coin_name_update_callback)
         self.next_button.clicked.connect(self.next_picture_button_callback)
         self.previous_button.clicked.connect(self.previous_picture_button_callback)
+        self.overlay = DraggableCrossesOverlay(self.image_label)
+        self.overlay.setGeometry(self.image_label.geometry())
 
         self.image_idx = 0
 
@@ -63,7 +66,16 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
             self.coin_catalog_name_dropbox.addItems(self.catalog[year][country].keys())
         if isinstance(request, PictureResponse):
             picture = request.picture
+            vertices = request.vertices
             self.image_label.setPixmap(picture)
+            width = self.image_label.width()
+            height = self.image_label.height()
+            crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
+
+            # self.overlay.init_image_with_vertices(self.catalog_handler.active_coin, self.current_coin_photo_id)
+            self.overlay.crosses = crosses
+            self.overlay.show()
+            print(vertices)
             # print(picture)
 
     def set_year_dropbox_items(self):

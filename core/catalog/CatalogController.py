@@ -100,7 +100,7 @@ class CoinCatalogHandler(QObject):
         png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
         return [file for file in coin.pictures if file in png_file_list]
 
-    def get_coin_photo_from_catalog(self, coin: Coin, picture: str) -> QPixmap:
+    def get_coin_photo_from_catalog(self, coin: Coin, picture: str) -> tuple[QPixmap, list[tuple[float, float]]]:
         # coin: Coin = self.coin_catalog_dict[year][country][name]
         coin_picture_files = self.get_coin_dir_picture_files(coin)
         coin_dir_path: str = os.path.join(self.catalog_path,
@@ -110,6 +110,7 @@ class CoinCatalogHandler(QObject):
         if picture in coin.pictures:
             # photo_file: str = photo_file_list[active_coin_photo_id]
             photo = QPixmap(os.path.join(coin_dir_path, picture))
+            vertices: list[tuple[int, int]] = coin.pictures[picture]["vertices"]
             # Check if the image is loaded successfully
             if photo.isNull():
                 print(f"Failed to load image from {coin_picture_files[0]}")
@@ -117,7 +118,7 @@ class CoinCatalogHandler(QObject):
                 print(f"Image loaded successfully from {coin_picture_files[0]}")
         else:
             photo = QPixmap("data\\debug_img.png")
-        return photo
+        return photo, vertices
 
     def receive_request(self, request: RequestBase):
         print(f"[CoinCatalogHandler]: got request: {request}")
@@ -125,7 +126,9 @@ class CoinCatalogHandler(QObject):
             response = CatalogDictResponse(source=Modules.CATALOG_HANDLER, destination=request.source, data=self.coin_catalog_dict)
             self.qt_signals.catalog_handler_response.emit(response)
         elif isinstance(request, PictureRequest):
+            picture, vertices = self.get_coin_photo_from_catalog(request.coin, request.picture)
             response = PictureResponse(source=Modules.CATALOG_HANDLER,
                                        destination=request.source,
-                                       picture=self.get_coin_photo_from_catalog(request.coin, request.picture))
+                                       picture=picture,
+                                       vertices=vertices)
             self.qt_signals.catalog_handler_response.emit(response)
