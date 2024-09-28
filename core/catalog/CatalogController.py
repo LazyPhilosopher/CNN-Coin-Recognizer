@@ -12,8 +12,9 @@ from core.qt_threading.headers.catalog_handler.CatalogDictRequest import Catalog
 from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
 from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
+from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
 
-CATALOG_DIR_NAME = "catalog"
+CATALOG_FILE_NAME = "catalog"
 
 
 class CoinCatalogHandler(QObject):
@@ -42,7 +43,7 @@ class CoinCatalogHandler(QObject):
             QApplication.processEvents()
 
     def parse_main_catalog(self) -> bool:
-        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_DIR_NAME + ".json")
+        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
         coin_catalog_dict: dict = {}
         with open(catalog_dict_path, ) as catalog_file:
 
@@ -78,6 +79,9 @@ class CoinCatalogHandler(QObject):
                                 if not passed:
                                     return False
                             for picture_file, attributes in coin_attributes["pictures"].items():
+                                file_path = os.path.join(self.catalog_path, coin.year, coin.country, coin.name, picture_file)
+                                if not os.path.exists(file_path) or not os.path.isfile(file_path):
+                                    continue
                                 coin.add_picture(picture_file=picture_file)
                                 vertices: list[list[float, float]] = attributes["vertices"]
                                 passed = coin.add_vertices_to_picture(picture_file=picture_file, vertices=vertices)
@@ -113,12 +117,42 @@ class CoinCatalogHandler(QObject):
             vertices: list[tuple[int, int]] = coin.pictures[picture]["vertices"]
             # Check if the image is loaded successfully
             if photo.isNull():
-                print(f"Failed to load image from {coin_picture_files[0]}")
+                print(f"Failed to load image from {picture}")
             else:
                 print(f"Image loaded successfully from {coin_picture_files[0]}")
         else:
             photo = QPixmap("data\\debug_img.png")
         return photo, vertices
+
+    def set_coin_photo_vertices(self, coin: Coin, picture_file: str, vertices_coordinates: list[tuple[int, int]]):
+        # coin: Coin = coin
+        coin_dir_path: str = os.path.join(self.catalog_path,
+                                          coin.year,
+                                          coin.country,
+                                          coin.name)
+        png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
+        coin.pictures[picture_file]["vertices"] = vertices_coordinates
+        self.coin_catalog_dict[coin.year][coin.country][coin.name] = coin
+        self.write_catalog()
+        # photo_id = photo_id % len(coin_picture_files)
+        # photo_file: str = photo_file_list[active_coin_photo_id]
+        # photo = QPixmap(os.path.join(coin_dir_path, coin_picture_files[photo_id]))
+        # coin.pictures[coin_picture_files[photo_id]][
+        #     "vertices"] = vertices_coordinates
+
+    def write_catalog(self) -> bool:
+        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME+".json")
+        try:
+            with open(catalog_dict_path, 'w') as file:
+                dictionary: dict = {"params": self.global_params, "coins": {"years": self.coin_catalog_dict}}
+                json.dump(dictionary, file, cls=CatalogEncoder, indent=4)
+                # TODO: custom serializer
+                # json_data = CatalogEncoder.custom_serialize(self.coin_catalog_dict)
+                # file.write(json_data)
+        except Exception as ex:
+            print(ex)
+            return False
+        return True
 
     def receive_request(self, request: RequestBase):
         print(f"[CoinCatalogHandler]: got request: {request}")
@@ -132,3 +166,20 @@ class CoinCatalogHandler(QObject):
                                        picture=picture,
                                        vertices=vertices)
             self.qt_signals.catalog_handler_response.emit(response)
+        elif isinstance(request, PictureVerticesUpdateRequest):
+            vertices = request.vertices
+            coin = request.coin
+            picture_file = request.picture_file
+            self.set_coin_photo_vertices(coin=coin, picture_file=picture_file, vertices_coordinates=vertices)
+            self.write_catalog()
+
+
+class CatalogEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+        elif isinstance(obj, list):
+            return '[' + ', '.join(i for i in obj) + ']'
+            # return '[' + ', '.join(CatalogEncoder.custom_serialize(i) for i in obj) + ']\n'
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)

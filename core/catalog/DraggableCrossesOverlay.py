@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtGui import QPainter, QColor, QPen, QPicture
 from PySide6.QtWidgets import QWidget
 
@@ -10,6 +10,8 @@ from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest impo
 
 
 class DraggableCrossesOverlay(QWidget):
+    mouse_released = Signal(object)
+
     def __init__(self, parent=None, ):
         super().__init__(parent)
         self.crosses: list[QPoint] = []
@@ -76,10 +78,7 @@ class DraggableCrossesOverlay(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.selected_cross = None
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
-                                               destination=Modules.CATALOG_HANDLER,
-                                               vertices=self.crosses)
-        self.signals.catalog_handler_request.emit(request)
+        self.mouse_released.emit(self.crosses)
 
     def reset_vertices(self):
         self.crosses = []

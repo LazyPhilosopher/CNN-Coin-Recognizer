@@ -11,6 +11,7 @@ from core.qt_threading.headers.catalog_handler.CatalogDictRequest import Catalog
 from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
 from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
+from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
 from core.ui.pyqt6_designer.d_gallery_window import Ui_GalleryWindow
 
 
@@ -33,6 +34,8 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.qt_signals.catalog_handler_response.connect(self.receive_request)
 
         self.catalog: dict | None = None
+        self.active_coin: Coin | None = None
+        self.current_picture_name: str = ""
 
         self.coin_catalog_year_dropbox.currentIndexChanged.connect(self.year_dropbox_update_callback)
         self.coin_catalog_country_dropbox.currentIndexChanged.connect(self.country_dropbox_update_callback)
@@ -41,6 +44,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.previous_button.clicked.connect(self.previous_picture_button_callback)
         self.overlay = DraggableCrossesOverlay(self.image_label)
         self.overlay.setGeometry(self.image_label.geometry())
+        self.overlay.mouse_released.connect(self.update_edges)
 
         self.image_idx = 0
 
@@ -52,7 +56,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
 
     @Slot()
     def receive_request(self, request: RequestBase):
-        print("receive_request")
+        # print("receive_request")
         if isinstance(request, CatalogDictResponse):
             print(f"[ImageGalleryWindow]: {request.catalog}")
 
@@ -75,7 +79,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
             # self.overlay.init_image_with_vertices(self.catalog_handler.active_coin, self.current_coin_photo_id)
             self.overlay.crosses = crosses
             self.overlay.show()
-            print(vertices)
+            # print(vertices)
             # print(picture)
 
     def set_year_dropbox_items(self):
@@ -125,15 +129,23 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         country = self.coin_catalog_country_dropbox.currentText()
         name = self.coin_catalog_name_dropbox.currentText()
 
-        coin: Coin = self.catalog[year][country][name]
-        self.image_idx %= len(coin.pictures.keys())
-        picture: str = list(coin.pictures.keys())[self.image_idx]
-        self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=coin,
-                                                                    picture=picture,
+        self.active_coin: Coin = self.catalog[year][country][name]
+        self.image_idx %= len(self.active_coin.pictures.keys())
+        self.current_picture_name = list(self.active_coin.pictures.keys())[self.image_idx]
+        self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=self.active_coin,
+                                                                    picture=self.current_picture_name,
                                                                     source=Modules.GALLERY_WINDOW,
                                                                     destination=Modules.CATALOG_HANDLER))
 
-    def receive_picture(self, picture: QPixmap):
-        pass
-
-
+    def update_edges(self, crosses: list[QPoint]):
+        width = self.image_label.width()
+        height = self.image_label.height()
+        vertices = [(point.x() / width, point.y() / height) for point in crosses]
+        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+                                               destination=Modules.CATALOG_HANDLER,
+                                               coin=self.active_coin,
+                                               vertices=vertices,
+                                               picture_file=self.current_picture_name)
+        print(self.active_coin)
+        self.qt_signals.catalog_handler_request.emit(request)
+        # print(f"UPDATE EDGES {self.current_picture_name}")

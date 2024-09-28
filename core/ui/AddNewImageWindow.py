@@ -48,7 +48,7 @@ class AddNewImageWindow(QMainWindow, Ui_w_ImageCollector):
 
     @Slot()
     def receive_request(self, request: RequestBase):
-        print("receive_request")
+        # print("receive_request")
         if isinstance(request, CameraListResponse):
             # print(f"[AddNewImageWindow]: {request}")
             self.camera_swich_combo_box.addItems(request.body["cameras"])
