@@ -80,6 +80,6 @@ class DraggableCrossesOverlay(QWidget):
         self.selected_cross = None
         self.mouse_released.emit(self.crosses)
 
-    def reset_vertices(self):
-        self.crosses = []
-        self.update()
+    # def reset_vertices(self):
+    #     self.crosses = []
+    #     self.update()

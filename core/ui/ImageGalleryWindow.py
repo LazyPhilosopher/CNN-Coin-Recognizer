@@ -45,6 +45,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.overlay = DraggableCrossesOverlay(self.image_label)
         self.overlay.setGeometry(self.image_label.geometry())
         self.overlay.mouse_released.connect(self.update_edges)
+        self.reset_coin_vertices_button.clicked.connect(self.reset_coin_vertices)
 
         self.image_idx = 0
 
@@ -149,3 +150,13 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         print(self.active_coin)
         self.qt_signals.catalog_handler_request.emit(request)
         # print(f"UPDATE EDGES {self.current_picture_name}")
+
+    def reset_coin_vertices(self):
+        vertices = []
+        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+                                               destination=Modules.CATALOG_HANDLER,
+                                               coin=self.active_coin,
+                                               vertices=vertices,
+                                               picture_file=self.current_picture_name)
+        self.qt_signals.catalog_handler_request.emit(request)
+        self.request_picture()
