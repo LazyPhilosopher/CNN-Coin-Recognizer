@@ -23,6 +23,9 @@ class CommonSignals(QObject):
     catalog_handler_request = Signal(object)
     catalog_handler_response = Signal(object)
 
+    # Processing Module
+    processing_module_request = Signal(object)
+
     # Video thread
     video_thread_request = Signal(object)
     video_thread_response = Signal(object)

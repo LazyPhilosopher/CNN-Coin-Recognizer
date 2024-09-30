@@ -91,12 +91,6 @@ class VideoStream(QObject):
         request = CameraListResponse(camera_list=self.camera_list, source=Modules.VIDEO_STREAM)
         self.qt_signals.video_thread_response.emit(request)
 
-    # def return_camera_list(self):
-    #     self._get_camera_ids_list()
-    #     self.qt_signals.video_thread_response.emit(
-    #         CameraListResponse(self.camera_list)
-    #     )
-
     def process_video(self):
         """Main loop to process the video stream."""
         while self.is_running:
@@ -120,8 +114,4 @@ class VideoStream(QObject):
     def read_frame(self):
         return self.queue.get()
 
-    # def stop(self):
-    #     """Stop the video stream and terminate the process."""
-    #     self.is_running = False
-    #     self.video_thread.quit()
-    #     self.video_thread.wait()
+

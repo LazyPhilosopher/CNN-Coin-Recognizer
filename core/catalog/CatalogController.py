@@ -1,7 +1,7 @@
 import json
 import os
 
-from PySide6.QtCore import QObject, QThread
+from PySide6.QtCore import QObject, QThread, QEventLoop
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication
 
@@ -13,6 +13,8 @@ from core.qt_threading.headers.catalog_handler.CatalogDictResponse import Catalo
 from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
 from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
+from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
+from core.qt_threading.headers.processing_module.GrayscalePictureResponse import GrayscalePictureResponse
 
 CATALOG_FILE_NAME = "catalog"
 
@@ -24,6 +26,7 @@ class CoinCatalogHandler(QObject):
         project_root = 'D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer'
         self.catalog_path = os.path.join(project_root, "coin_catalog")
         self.coin_catalog_dict = {}
+        self.current_picture: QPixmap | None = None
 
         self.is_running = False
         self.main_thread = QThread()
@@ -39,8 +42,8 @@ class CoinCatalogHandler(QObject):
     def worker(self):
         self.parse_main_catalog()
 
-        while self.is_running:
-            QApplication.processEvents()
+        # while self.is_running:
+        #     QApplication.processEvents()
 
     def parse_main_catalog(self) -> bool:
         catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
@@ -105,8 +108,10 @@ class CoinCatalogHandler(QObject):
         return [file for file in coin.pictures if file in png_file_list]
 
     def get_coin_photo_from_catalog(self, coin: Coin, picture: str) -> tuple[QPixmap, list[tuple[float, float]]]:
+        print(f"[CoinCatalogHandler]: get_coin_photo_from_catalog")
         # coin: Coin = self.coin_catalog_dict[year][country][name]
         coin_picture_files = self.get_coin_dir_picture_files(coin)
+        vertices: list[tuple[int, int]] = []
         coin_dir_path: str = os.path.join(self.catalog_path,
                                           coin.year,
                                           coin.country,
@@ -114,15 +119,27 @@ class CoinCatalogHandler(QObject):
         if picture in coin.pictures:
             # photo_file: str = photo_file_list[active_coin_photo_id]
             photo = QPixmap(os.path.join(coin_dir_path, picture))
-            vertices: list[tuple[int, int]] = coin.pictures[picture]["vertices"]
+            vertices = coin.pictures[picture]["vertices"]
+
+            loop = QEventLoop()
+            # Connect the signal to a slot that checks the data type
+            slot_function = lambda data: self.wait_picture_conversion_signal(data, loop)
+            self.qt_signals.processing_module_request.connect(slot_function)
+
+            self.qt_signals.processing_module_request.emit(GrayscalePictureRequest(source=Modules.CATALOG_HANDLER,
+                                                                                   destination=Modules.PROCESSING_MODULE,
+                                                                                   picture=photo))
+            loop.exec_()
+            self.qt_signals.processing_module_request.disconnect(slot_function)
+
             # Check if the image is loaded successfully
-            if photo.isNull():
+            if self.current_picture.isNull():
                 print(f"Failed to load image from {picture}")
             else:
                 print(f"Image loaded successfully from {coin_picture_files[0]}")
         else:
-            photo = QPixmap("data\\debug_img.png")
-        return photo, vertices
+            self.current_picture = QPixmap("data\\debug_img.png")
+        return self.current_picture, vertices
 
     def set_coin_photo_vertices(self, coin: Coin, picture_file: str, vertices_coordinates: list[tuple[int, int]]):
         # coin: Coin = coin
@@ -172,6 +189,15 @@ class CoinCatalogHandler(QObject):
             picture_file = request.picture_file
             self.set_coin_photo_vertices(coin=coin, picture_file=picture_file, vertices_coordinates=vertices)
             self.write_catalog()
+
+    def wait_picture_conversion_signal(self, data, loop):
+        # Check if the received data is an instance of MyCustomObject
+        if isinstance(data, GrayscalePictureResponse):
+            print(f"[CoinCatalogHandler]: Received valid data: {data.picture}")
+            self.current_picture = data.picture
+            loop.quit()  # Quit the event loop only if the condition is met
+        else:
+            print(f"[CoinCatalogHandler]: Received invalid data {data}, continuing to wait...")
 
 
 class CatalogEncoder(json.JSONEncoder):

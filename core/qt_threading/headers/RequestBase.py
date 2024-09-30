@@ -9,6 +9,7 @@ class Modules(Enum):
     CATALOG_HANDLER = 3
     GALLERY_WINDOW = 4
     DRAGGABLE_CROSS_OVERLAY = 5
+    PROCESSING_MODULE = 6
 
 
 class RequestBase:

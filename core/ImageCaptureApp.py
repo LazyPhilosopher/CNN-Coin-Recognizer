@@ -3,6 +3,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from core.catalog.CatalogController import CoinCatalogHandler
+from core.processing_module.ProcessingModule import ProcessingModule
 from core.qt_threading.common_signals import CommonSignals
 from core.ui.AppWindow import AppWindow
 from core.video.video import VideoStream
@@ -18,6 +19,9 @@ class ImageCaptureApp:
 
         catalog_handler = CoinCatalogHandler()
         catalog_handler.start_process()
+
+        processing_module = ProcessingModule()
+        processing_module.start_process()
 
         self.main_window = AppWindow()
         self.main_window.show()
