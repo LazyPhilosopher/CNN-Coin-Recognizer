@@ -25,7 +25,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.image_label.setGeometry(0, 0, self.image_frame.width(), self.image_frame.height())
         self.image_label.setScaledContents(True)  # Ensure image scales with QLabel
         # self.image_label.setPixmap(QPixmap("data\\debug_img.png"))
-        self.new_coin_window = None
+        # self.new_coin_window = None
 
         self.qt_signals = CommonSignals()
 

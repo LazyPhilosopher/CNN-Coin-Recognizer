@@ -6,6 +6,7 @@ from core.ui.pyqt6_designer.d_main_window import Ui_MainWindow
 
 from core.ui.AddNewImageWindow import AddNewImageWindow
 from core.ui.ImageGalleryWindow import ImageGalleryWindow
+from core.ui.ImageCollector import ImageCollector
 
 
 class AppWindow(QMainWindow, Ui_MainWindow):
@@ -18,7 +19,7 @@ class AppWindow(QMainWindow, Ui_MainWindow):
         self.ImageGalleryButton.clicked.connect(self.image_gallery_button_routine)
 
     def add_image_button_routine(self):
-        self._window = AddNewImageWindow()
+        self._window = ImageCollector()
         self._window.show()
         self.centralwidget.setEnabled(False)
         self._window.closeEvent = self._enable_central_widget

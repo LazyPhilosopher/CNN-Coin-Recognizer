@@ -2,16 +2,17 @@ from PySide6.QtCore import Slot, QTimer
 from PySide6.QtWidgets import QMainWindow
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.RequestBase import RequestBase, Modules
+from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureRequest
 from core.qt_threading.headers.video_thread.CameraListRequest import CameraListRequest
 from core.qt_threading.headers.video_thread.CameraListResponse import CameraListResponse
 from core.qt_threading.headers.video_thread.ChangeVideoInput import ChangeVideoInput
 from core.qt_threading.headers.video_thread.FrameAvailable import FrameAvailable
 from core.ui.ImageFrame import ImageFrame
-from core.ui.pyqt6_designer.d_ImageCollector import Ui_w_ImageCollector
+from core.ui.pyqt6_designer.d_add_new_image_window import Ui_AddNewImageWindow
 
 
-class AddNewImageWindow(QMainWindow, Ui_w_ImageCollector):
+class AddNewImageWindow(QMainWindow, Ui_AddNewImageWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -73,7 +74,10 @@ class AddNewImageWindow(QMainWindow, Ui_w_ImageCollector):
     def save_image(self):
         # print("replace_video_frame")
         print(f"save picture")
-        self.qt_signals.catalog_handler_request.emit("save picture")
+        request = SavePictureRequest(source=Modules.ADD_NEW_PICTURE_WINDOW,
+                                     destination=Modules.CATALOG_HANDLER,
+                                     picture=self.video_frame.image_label.picture())
+        self.qt_signals.catalog_handler_request.emit(request)
         # self.signals.video_thread_request.emit("help")
 
     # def save_photo(self):

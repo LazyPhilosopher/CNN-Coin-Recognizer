@@ -1,255 +1,304 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>w_ImageCollector</class>
- <widget class="QWidget" name="w_ImageCollector">
+ <class>ImageCollector</class>
+ <widget class="QMainWindow" name="ImageCollector">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>661</width>
-    <height>401</height>
+    <width>664</width>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>MainWindow</string>
   </property>
-  <widget class="QFrame" name="video_frame">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>381</width>
-     <height>381</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::Panel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Sunken</enum>
-   </property>
-   <property name="lineWidth">
-    <number>1</number>
-   </property>
-  </widget>
-  <widget class="Line" name="line_2">
-   <property name="geometry">
-    <rect>
-     <x>400</x>
-     <y>10</y>
-     <width>16</width>
-     <height>381</height>
-    </rect>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Vertical</enum>
-   </property>
-  </widget>
-  <widget class="QPlainTextEdit" name="plainTextEdit">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>260</y>
-     <width>231</width>
-     <height>131</height>
-    </rect>
-   </property>
-   <property name="readOnly">
-    <bool>true</bool>
-   </property>
-   <property name="plainText">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>235</y>
-     <width>41</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Coin</string>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="active_coin_combo_box">
-   <property name="geometry">
-    <rect>
-     <x>460</x>
-     <y>230</y>
-     <width>191</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QTabWidget" name="tabWidget">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>10</y>
-     <width>231</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <property name="currentIndex">
-    <number>0</number>
-   </property>
-   <widget class="QWidget" name="camera_tab">
-    <attribute name="title">
-     <string>Camera</string>
-    </attribute>
-    <widget class="QComboBox" name="camera_swich_combo_box">
-     <property name="geometry">
-      <rect>
-       <x>90</x>
-       <y>10</y>
-       <width>131</width>
-       <height>21</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_2">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>10</y>
-       <width>61</width>
-       <height>20</height>
-      </rect>
-     </property>
-     <property name="text">
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>255</y>
+      <width>49</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Country</string>
+    </property>
+   </widget>
+   <widget class="Line" name="line_2">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>5</y>
+      <width>16</width>
+      <height>381</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+   </widget>
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>5</y>
+      <width>231</width>
+      <height>211</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="camera_tab">
+     <attribute name="title">
       <string>Camera</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
+     </attribute>
+     <widget class="QComboBox" name="camera_swich_combo_box">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>10</y>
+        <width>131</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>61</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Camera</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="save_photo_button">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>60</y>
+        <width>211</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>New Photo</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="auto_mark_edges_checkbox">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>30</y>
+        <width>221</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>auto-mark coin edges</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="new_coin_button">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>100</y>
+        <width>211</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>New Coin</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="color_correction_button">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>140</y>
+        <width>211</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Automatic Color Correction</string>
+      </property>
+     </widget>
     </widget>
-    <widget class="QPushButton" name="save_photo_button">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>60</y>
-       <width>211</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>New Photo</string>
-     </property>
-     <property name="checkable">
-      <bool>false</bool>
-     </property>
+    <widget class="QWidget" name="gallery_tab">
+     <attribute name="title">
+      <string>Gallery</string>
+     </attribute>
+     <widget class="QPushButton" name="vertices_reset_button">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>50</y>
+        <width>211</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Reset Coin Vertices</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="next_gallery_photo_button">
+      <property name="geometry">
+       <rect>
+        <x>120</x>
+        <y>10</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Next Photo</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="previous_gallery_photo_button">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Previous Photo</string>
+      </property>
+     </widget>
     </widget>
-    <widget class="QCheckBox" name="auto_mark_edges_checkbox">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>30</y>
-       <width>221</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>auto-mark coin edges</string>
-     </property>
-     <property name="checkable">
-      <bool>false</bool>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="new_coin_button">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>100</y>
-       <width>211</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>New Coin</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="color_correction_button">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>140</y>
-       <width>211</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Automatic Color Correction</string>
-     </property>
+    <widget class="QWidget" name="coin_tab">
+     <attribute name="title">
+      <string>Coin </string>
+     </attribute>
     </widget>
    </widget>
-   <widget class="QWidget" name="gallery_tab">
-    <attribute name="title">
-     <string>Gallery</string>
-    </attribute>
-    <widget class="QPushButton" name="vertices_reset_button">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>50</y>
-       <width>211</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Reset Coin Vertices</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="next_gallery_photo_button">
-     <property name="geometry">
-      <rect>
-       <x>120</x>
-       <y>10</y>
-       <width>101</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Next Photo</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="previous_gallery_photo_button">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>10</y>
-       <width>91</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Previous Photo</string>
-     </property>
-    </widget>
+   <widget class="QComboBox" name="coin_catalog_year_dropbox">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>225</y>
+      <width>161</width>
+      <height>22</height>
+     </rect>
+    </property>
    </widget>
-   <widget class="QWidget" name="coin_tab">
-    <attribute name="title">
-     <string>Coin </string>
-    </attribute>
+   <widget class="QFrame" name="video_frame">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>5</y>
+      <width>381</width>
+      <height>381</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Panel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Sunken</enum>
+    </property>
+    <property name="lineWidth">
+     <number>1</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>285</y>
+      <width>61</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Coin name</string>
+    </property>
+   </widget>
+   <widget class="QPlainTextEdit" name="plainTextEdit">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>315</y>
+      <width>231</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+    <property name="plainText">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="coin_catalog_country_dropbox">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>255</y>
+      <width>161</width>
+      <height>22</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="coin_catalog_name_dropbox">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>285</y>
+      <width>161</width>
+      <height>22</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>230</y>
+      <width>31</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Year</string>
+    </property>
    </widget>
   </widget>
+  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

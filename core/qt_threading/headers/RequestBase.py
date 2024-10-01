@@ -10,6 +10,7 @@ class Modules(Enum):
     GALLERY_WINDOW = 4
     DRAGGABLE_CROSS_OVERLAY = 5
     PROCESSING_MODULE = 6
+    ADD_NEW_PICTURE_WINDOW = 7
 
 
 class RequestBase:

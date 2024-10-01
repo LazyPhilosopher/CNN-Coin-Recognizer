@@ -23,14 +23,6 @@ class DraggableCrossesOverlay(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self.setMouseTracking(True)  # Optional, for smoother dragging
 
-    # def init_image_with_vertices(self, coin: Coin, ):
-    #
-    #     self.drawn_coin = coin
-    #
-    #     width: int = coin_picture.width()
-    #     height: int = coin_picture.height()
-    #     crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
-
     def paintEvent(self, event):
         if not self.parent():
             return
@@ -39,6 +31,7 @@ class DraggableCrossesOverlay(QWidget):
         pen = QPen(QColor('red'), 2)
         painter.setPen(pen)
         self.draw_crosses(painter=painter)
+
 
     def draw_crosses(self, painter: QPainter):
         if len(self.crosses) > 2:
