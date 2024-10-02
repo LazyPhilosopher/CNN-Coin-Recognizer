@@ -1,4 +1,4 @@
-from PySide6.QtCore import QPoint, Slot, QTimer
+from PySide6.QtCore import QPoint, Slot, QTimer, QEventLoop
 from PySide6.QtWidgets import QMainWindow, QLabel
 
 from core.catalog.Coin import Coin
@@ -11,6 +11,8 @@ from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequ
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
 from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
 from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureRequest
+from core.qt_threading.headers.processing_module.BorderDetectionRequest import BorderDetectionRequest
+from core.qt_threading.headers.processing_module.BorderDetectionResponse import BorderDetectionResponse
 from core.qt_threading.headers.video_thread.CameraListRequest import CameraListRequest
 from core.qt_threading.headers.video_thread.CameraListResponse import CameraListResponse
 from core.qt_threading.headers.video_thread.FrameAvailable import FrameAvailable
@@ -103,6 +105,20 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         elif isinstance(request, FrameAvailable):
             if self.tabWidget.tabText(current_tab_index) == "Camera":
+
+                loop = QEventLoop()
+                # Connect the signal to a slot that checks the data type
+                slot_function = lambda data: self.wait_border_detection_signal(data, loop)
+                self.qt_signals.processing_module_request.connect(slot_function)
+
+                self.qt_signals.processing_module_request.emit(
+                    BorderDetectionRequest(source=Modules.CATALOG_HANDLER,
+                                           destination=Modules.PROCESSING_MODULE,
+                                           picture=request.frame,
+                                           param_dict=self.assemble_border_detection_dict()))
+                loop.exec_()
+                self.qt_signals.processing_module_request.disconnect(slot_function)
+
                 self.video_frame.set_image(request.frame)
 
     def tab_bar_click_routine(self):
@@ -184,4 +200,27 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                                                vertices=vertices,
                                                picture_file=self.current_picture_name)
         self.qt_signals.catalog_handler_request.emit(request)
+
+    def wait_border_detection_signal(self, data, loop):
+        # Check if the received data is an instance of MyCustomObject
+        if isinstance(data, BorderDetectionResponse):
+            # print(f"[ImageCollector]: Received valid data: {data.picture}")
+            self.current_picture = data.picture
+            loop.quit()  # Quit the event loop only if the condition is met
+        # else:
+            # print(f"[ImageCollector]: Received invalid data {data}, continuing to wait...")
+
+    def assemble_border_detection_dict(self):
+        return {
+            "b_k": self.blurr_kernel_slider_1.value(),
+            "b_s": self.blur_kernel_2_slider.value(),
+            "c_t1": self.canny_1_slider.value(),
+            "c_t2": self.canny_2_slider.value(),
+            "k1": self.dilate_1_slider.value(),
+            "k2": self.dilate_2_slider.value(),
+            "k3": self.erode_1_slider.value(),
+            "k4": self.erode_2_slider.value(),
+            "iter1": 11,
+            "iter2": 4
+        }
 

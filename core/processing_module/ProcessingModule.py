@@ -4,11 +4,15 @@ from PySide6.QtWidgets import QApplication
 
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.headers.RequestBase import RequestBase, Modules
-from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
-from core.qt_threading.headers.processing_module.GrayscalePictureResponse import GrayscalePictureResponse
+from core.qt_threading.headers.processing_module.BorderDetectionRequest import BorderDetectionRequest
+
 
 import cv2
 import numpy as np
+
+from core.qt_threading.headers.processing_module.BorderDetectionResponse import BorderDetectionResponse
+from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
+from core.qt_threading.headers.processing_module.GrayscalePictureResponse import GrayscalePictureResponse
 
 
 class ProcessingModule(QObject):
@@ -44,6 +48,31 @@ class ProcessingModule(QObject):
                 picture=self.convert_pixmap_to_grayscale(response_picture)
             ))
 
+        elif isinstance(request, BorderDetectionRequest):
+            picture = request.picture
+            b_k = request.param_dict["b_k"]
+            b_s = request.param_dict["b_s"]
+            c_t1 = request.param_dict["c_t1"]
+            c_t2 = request.param_dict["c_t2"]
+            k1 = request.param_dict["k1"]
+            k2 = request.param_dict["k2"]
+            k3 = request.param_dict["k3"]
+            k4 = request.param_dict["k4"]
+            iter1 = request.param_dict["iter1"]
+            iter2 = request.param_dict["iter2"]
+            self.process(img=picture,
+                         b_k=b_k,
+                         b_s=b_s,
+                         c_t1=c_t1,
+                         c_t2=c_t2,
+                         k1=k1,
+                         k2=k2,
+                         k3=k3,
+                         k4=k4,
+                         iter1=iter1,
+                         iter2=iter2)
+            self.qt_signals.processing_module_request.emit(BorderDetectionResponse(picture=picture))
+
     def convert_pixmap_to_grayscale(self, pixmap: QPixmap):
         # Step 1: Convert QPixmap to QImage
         image = pixmap.toImage()
@@ -55,14 +84,6 @@ class ProcessingModule(QObject):
         grayscale_pixmap = QPixmap.fromImage(grayscale_image)
 
         return grayscale_pixmap
-
-    def process(self, img):
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_blur = cv2.GaussianBlur(img_gray, (3, 3), 2)
-        img_canny = cv2.Canny(img_blur, 50, 9)
-        img_dilate = cv2.dilate(img_canny, np.ones((4, 2)), iterations=11)
-        img_erode = cv2.erode(img_dilate, np.ones((13, 7)), iterations=4)
-        return cv2.bitwise_not(img_erode)
 
     def QPixmapToArray(self, pixmap):
         ## Get the size of the current pixmap
@@ -84,3 +105,14 @@ class ProcessingModule(QObject):
         qimage = QImage(data, width, height, QImage.Format_Grayscale8)
 
         return QPixmap.fromImage(qimage)
+
+    def process(self, img, b_k, b_s, c_t1, c_t2, k1, k2, k3, k4, iter1, iter2):
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        b_k = b_k // 2 * 2 + 1
+        img_blur = cv2.GaussianBlur(img_gray, (b_k, b_k), b_s)
+        img_canny = cv2.Canny(img_blur, c_t1, c_t2)
+        img_dilate = cv2.dilate(img_canny, np.ones((k1, k2)), iterations=iter1)
+        img_erode = cv2.erode(img_dilate, np.ones((k3, k4)), iterations=iter2)
+        return cv2.bitwise_not(img_erode)
+
+

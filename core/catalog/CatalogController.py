@@ -15,8 +15,8 @@ from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequ
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
 from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
 from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureRequest
-from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
-from core.qt_threading.headers.processing_module.GrayscalePictureResponse import GrayscalePictureResponse
+# from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
+# from core.qt_threading.headers.processing_module.BorderDetectionResponse import GrayscalePictureResponse
 
 CATALOG_FILE_NAME = "catalog"
 
