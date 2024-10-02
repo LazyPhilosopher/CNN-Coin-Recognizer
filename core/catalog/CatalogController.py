@@ -1,13 +1,14 @@
 import json
 import os
 import uuid
+from typing import Type
 
-from PySide6.QtCore import QObject, QThread, QEventLoop, Qt
+from PySide6.QtCore import QObject, QThread, QEventLoop, Qt, Signal
 from PySide6.QtGui import QPixmap, QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
 from core.catalog.Coin import Coin
-from core.qt_threading.common_signals import CommonSignals
+from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
 from core.qt_threading.headers.RequestBase import RequestBase, Modules
 from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictRequest
 from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
@@ -123,16 +124,18 @@ class CoinCatalogHandler(QObject):
             self.current_picture = QPixmap(os.path.join(coin_dir_path, picture))
             vertices = coin.pictures[picture]["vertices"]
 
-            # loop = QEventLoop()
-            # # Connect the signal to a slot that checks the data type
-            # slot_function = lambda data: self.wait_picture_conversion_signal(data, loop)
-            # self.qt_signals.processing_module_request.connect(slot_function)
+            message = GrayscalePictureRequest(
+                source=Modules.CATALOG_HANDLER,
+                destination=Modules.PROCESSING_MODULE,
+                picture=self.current_picture)
 
-            # self.qt_signals.processing_module_request.emit(GrayscalePictureRequest(source=Modules.CATALOG_HANDLER,
-            #                                                                        destination=Modules.PROCESSING_MODULE,
-            #                                                                        picture=self.current_picture))
-            # loop.exec_()
-            # self.qt_signals.processing_module_request.disconnect(slot_function)
+            response = blocking_response_message_await(
+                request_signal=self.qt_signals.processing_module_request,
+                request_message=message,
+                response_signal=self.qt_signals.processing_module_request,
+                response_message_type=GrayscalePictureResponse)
+
+            self.current_picture = response.picture
 
             # Check if the image is loaded successfully
             if self.current_picture.isNull():
@@ -195,14 +198,28 @@ class CoinCatalogHandler(QObject):
             self.add_coin_picture(picture=request.picture,
                                   coin=request.coin)
 
-    def wait_picture_conversion_signal(self, data, loop):
-        # Check if the received data is an instance of MyCustomObject
-        if isinstance(data, GrayscalePictureResponse):
-            print(f"[CoinCatalogHandler]: Received valid data: {data.picture}")
-            self.current_picture = data.picture
-            loop.quit()  # Quit the event loop only if the condition is met
-        else:
-            print(f"[CoinCatalogHandler]: Received invalid data {data}, continuing to wait...")
+    # def blocking_response_message_await(self,
+    #                                     request_signal: Signal,
+    #                                     request_message: RequestBase,
+    #                                     response_signal: Signal,
+    #                                     response_message_type: Type[RequestBase]):
+    #     ret_val: RequestBase | None = None
+    #     loop: QEventLoop = QEventLoop()
+    #
+    #     def _message_type_check(message: RequestBase):
+    #         nonlocal ret_val
+    #         if isinstance(message, response_message_type):
+    #             ret_val = message
+    #             loop.quit()
+    #
+    #     callback = lambda data: _message_type_check(data)
+    #     response_signal.connect(callback)
+    #
+    #     request_signal.emit(request_message)
+    #
+    #     loop.exec_()
+    #     response_signal.disconnect(callback)
+    #     return ret_val
 
     def add_coin_picture(self, picture: QPixmap, coin: Coin):
         catalog_coin = self.coin_catalog_dict[coin.year][coin.country][coin.name]

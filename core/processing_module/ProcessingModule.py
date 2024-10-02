@@ -34,14 +34,14 @@ class ProcessingModule(QObject):
     def receive_request(self, request: RequestBase):
         if isinstance(request, GrayscalePictureRequest):
             print(f"[ProcessingModule]: got request: {request}")
-            numpy_picture = self.QPixmapToArray(request.picture)
-            process_picture = self.process(numpy_picture)
-            response_picture = self.convertCvImage2QtImage(process_picture)
+            # numpy_picture = self.QPixmapToArray(request.picture)
+            # process_picture = self.process(numpy_picture)
+            # response_picture = self.convertCvImage2QtImage(process_picture)
 
             self.qt_signals.processing_module_request.emit(GrayscalePictureResponse(
                 source=Modules.PROCESSING_MODULE,
                 destination=request.source,
-                picture=self.convert_pixmap_to_grayscale(response_picture)
+                picture=self.convert_pixmap_to_grayscale(request.picture)
             ))
 
     def convert_pixmap_to_grayscale(self, pixmap: QPixmap):
