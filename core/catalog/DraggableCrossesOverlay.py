@@ -1,12 +1,10 @@
 from PySide6.QtCore import Qt, QPoint, Signal
-from PySide6.QtGui import QPainter, QColor, QPen, QPicture
+from PySide6.QtGui import QPainter, QColor, QPen
 from PySide6.QtWidgets import QWidget
 
 from core.catalog import Coin
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.MessageBase import Modules
-from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateMessage
 
 
 class DraggableCrossesOverlay(QWidget):

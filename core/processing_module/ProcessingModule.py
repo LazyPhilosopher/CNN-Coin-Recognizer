@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 
 from core.qt_threading.headers.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest
-from core.qt_threading.headers.processing_module.Responses import ProcessedPictureResponse, GrayscalePictureResponse
+from core.qt_threading.headers.processing_module.Responses import ProcessedImageResponse
 
 
 class ProcessingModule(QObject):
@@ -46,21 +46,12 @@ class ProcessingModule(QObject):
     def handle_grayscale_picture(self, request: GrayscalePictureRequest):
         grayscale_image = request.image.convertToFormat(QImage.Format_Grayscale8)
 
-        self.qt_signals.processing_module_request.emit(ProcessedPictureResponse(
-            source=Modules.PROCESSING_MODULE,
-            destination=request.source,
-            picture=grayscale_image
-        ))
+        self.qt_signals.processing_module_request.emit(
+            ProcessedImageResponse(image=grayscale_image, source=Modules.PROCESSING_MODULE, destination=request.source))
 
     def handle_do_nothing(self, request: DoNothingRequest):
-        # picture = request.picture
-        # numpy_picture = self.QPixmapToNumpy(pixmap=picture)
-        # qpixmap_picture = self.NumpyToQPixmap(data=numpy_picture)
-        self.qt_signals.processing_module_request.emit(ProcessedPictureResponse(
-            source=Modules.PROCESSING_MODULE,
-            destination=request.source,
-            picture=request.image
-        ))
+        self.qt_signals.processing_module_request.emit(
+            ProcessedImageResponse(image=request.image, source=Modules.PROCESSING_MODULE, destination=request.source))
 
     def convert_pixmap_to_grayscale(self, pixmap: QPixmap):
         # Step 1: Convert QPixmap to QImage

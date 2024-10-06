@@ -1,3 +1,5 @@
+from PySide6.QtGui import QImage
+
 from core.qt_threading.headers.MessageBase import MessageBase
 
 
@@ -9,10 +11,10 @@ class GrayscalePictureResponse(MessageBase):
         self.destination = destination
 
 
-class ProcessedPictureResponse(MessageBase):
-    def __init__(self,  picture: str, source=None, destination=None):
+class ProcessedImageResponse(MessageBase):
+    def __init__(self,  image: QImage, source=None, destination=None):
         super().__init__()
-        self.picture = picture
+        self.image = image
         self.source = source
         self.destination = destination
 

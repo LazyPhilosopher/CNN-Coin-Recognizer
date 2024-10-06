@@ -1,10 +1,7 @@
 from PySide6.QtWidgets import QMainWindow
 
-# from core.catalog.CatalogController import CoinCatalogHandler
-
 from core.ui.pyqt6_designer.d_main_window import Ui_MainWindow
 
-from core.ui.AddNewImageWindow import AddNewImageWindow
 from core.ui.ImageGalleryWindow import ImageGalleryWindow
 from core.ui.ImageCollector import ImageCollector
 

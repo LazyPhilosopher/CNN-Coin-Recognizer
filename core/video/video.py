@@ -1,19 +1,15 @@
-import time
-
-import cv2
 from queue import Queue
 
+import cv2
 import numpy as np
-from PySide6.QtCore import QProcess, QObject, Slot, QThread
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import QProcess, QObject, QThread
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.headers.MessageBase import MessageBase, Modules
-from core.qt_threading.headers.video_thread.CameraListRequest import CameraListMessage
-from core.qt_threading.headers.video_thread.CameraListResponse import CameraListResponse
-from core.qt_threading.headers.video_thread.ChangeVideoInput import ChangeVideoInput
-from core.qt_threading.headers.video_thread.FrameAvailable import FrameAvailable
+from core.qt_threading.headers.video_thread.Requests import CameraListMessage, ChangeVideoInput, FrameAvailable
+from core.qt_threading.headers.video_thread.Responses import CameraListResponse
 
 
 class VideoStream(QObject):
@@ -32,7 +28,7 @@ class VideoStream(QObject):
         self.queue = Queue(maxsize=size)
         self.camera_list: list = []
 
-        self.qt_signals.video_thread_request.connect(self.receive_request)
+        self.qt_signals.video_thread_request.connect(self.handle_request)
 
     def start_process(self):
         """Starts the video capture in a separate QProcess."""
@@ -58,24 +54,24 @@ class VideoStream(QObject):
         self.device_id = device_id
         self.cv2_stream = cv2.VideoCapture(self.device_id)
 
-    @Slot()
-    def receive_request(self, request: MessageBase):
-        print(f"VideoThread request: {request}")
-        match request:
-            case CameraListMessage():
-                # time.sleep(3)
-                self.moveToThread(self.temp_thread)
-                self.temp_thread.started.connect(self._camera_list_refresh)
-                self.temp_thread.start()
+    def handle_request(self, request: MessageBase):
+        request_handlers = {
+            CameraListMessage: self.handle_camera_list_message,
+            ChangeVideoInput: self.handle_change_video_input,
+        }
 
-                # print("VideoThread CameraListResponse")
-            case ChangeVideoInput(body={"device_id": device_id}):
-                pass
-                # print(f"ChangeVideoInput: {type(request)}")
-                if device_id != self.device_id:
-                    self.reinit_stream(device_id)
-            case _:
-                print(f"Unhandled request type: {type(request)}")
+        handler = request_handlers.get(type(request), None)
+        if handler:
+            handler(request)
+
+    def handle_camera_list_message(self, _: CameraListMessage):
+        self.moveToThread(self.temp_thread)
+        self.temp_thread.started.connect(self._camera_list_refresh)
+        self.temp_thread.start()
+
+    def handle_change_video_input(self, request: ChangeVideoInput):
+        if request.device_id != self.device_id:
+            self.reinit_stream(request.device_id)
 
     def _camera_list_refresh(self) -> None:
         index = 0
@@ -106,8 +102,6 @@ class VideoStream(QObject):
 
             response: MessageBase = FrameAvailable(self.read_frame(), source=Modules.VIDEO_STREAM)
             self.qt_signals.frame_available.emit(response)
-            # print("self.signals.frame_available.emit(self.read()) ")
-            # print(f"Size of queue: {self.queue.qsize()}")
             QApplication.processEvents()
 
         # Release the capture when done
