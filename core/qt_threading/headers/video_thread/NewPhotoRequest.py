@@ -1,6 +1,6 @@
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 
-class NewPhotoRequest(RequestBase):
+class NewPhotoMessage(MessageBase):
     def __init__(self):
         super().__init__()

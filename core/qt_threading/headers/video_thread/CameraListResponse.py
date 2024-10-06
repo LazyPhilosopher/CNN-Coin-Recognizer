@@ -1,9 +1,9 @@
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 body: dict = {"cameras": {}}
 
 
-class CameraListResponse(RequestBase):
+class CameraListResponse(MessageBase):
     def __init__(self, camera_list: list, source=None, destination=None):
         super().__init__()
         self.source = source

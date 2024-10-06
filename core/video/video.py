@@ -2,12 +2,15 @@ import time
 
 import cv2
 from queue import Queue
+
+import numpy as np
 from PySide6.QtCore import QProcess, QObject, Slot, QThread
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.RequestBase import RequestBase, Modules
-from core.qt_threading.headers.video_thread.CameraListRequest import CameraListRequest
+from core.qt_threading.headers.MessageBase import MessageBase, Modules
+from core.qt_threading.headers.video_thread.CameraListRequest import CameraListMessage
 from core.qt_threading.headers.video_thread.CameraListResponse import CameraListResponse
 from core.qt_threading.headers.video_thread.ChangeVideoInput import ChangeVideoInput
 from core.qt_threading.headers.video_thread.FrameAvailable import FrameAvailable
@@ -56,10 +59,10 @@ class VideoStream(QObject):
         self.cv2_stream = cv2.VideoCapture(self.device_id)
 
     @Slot()
-    def receive_request(self, request: RequestBase):
+    def receive_request(self, request: MessageBase):
         print(f"VideoThread request: {request}")
         match request:
-            case CameraListRequest():
+            case CameraListMessage():
                 # time.sleep(3)
                 self.moveToThread(self.temp_thread)
                 self.temp_thread.started.connect(self._camera_list_refresh)
@@ -89,7 +92,7 @@ class VideoStream(QObject):
         self.camera_list = [f"Camera {idx}" for idx in id_arr]
 
         request = CameraListResponse(camera_list=self.camera_list, source=Modules.VIDEO_STREAM)
-        self.qt_signals.video_thread_response.emit(request)
+        self.qt_signals.video_thread_request.emit(request)
 
     def process_video(self):
         """Main loop to process the video stream."""
@@ -101,8 +104,8 @@ class VideoStream(QObject):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.queue.put(frame)
 
-            response: RequestBase = FrameAvailable(self.read_frame(), source=Modules.VIDEO_STREAM)
-            self.qt_signals.video_thread_response.emit(response)
+            response: MessageBase = FrameAvailable(self.read_frame(), source=Modules.VIDEO_STREAM)
+            self.qt_signals.frame_available.emit(response)
             # print("self.signals.frame_available.emit(self.read()) ")
             # print(f"Size of queue: {self.queue.qsize()}")
             QApplication.processEvents()
@@ -111,7 +114,29 @@ class VideoStream(QObject):
         self.cv2_stream.release()
         self.video_thread.quit()
 
-    def read_frame(self):
-        return self.queue.get()
+    def read_frame(self) -> QImage:
+        return self.NumpyToQImage(self.queue.get())
 
+    def NumpyToQImage(self, image_data) -> QImage:
+        if isinstance(image_data, np.ndarray):
+            if image_data.ndim == 2:  # Grayscale image
+                height, width = image_data.shape
+                bytes_per_line = width
+                q_image = QImage(image_data.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+            elif image_data.ndim == 3:  # Color image
+                height, width, channels = image_data.shape
+                if channels == 3:  # RGB image
+                    bytes_per_line = channels * width
+                    q_image = QImage(image_data.data, width, height, bytes_per_line, QImage.Format_RGB888)
+                elif channels == 4:  # RGBA image
+                    bytes_per_line = channels * width
+                    q_image = QImage(image_data.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
+                else:
+                    raise ValueError("Unsupported number of channels")
+            else:
+                raise ValueError("Unsupported ndarray shape")
+
+            return q_image
+        else:
+            return image_data
 

@@ -1,7 +1,7 @@
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 
-class CatalogDictResponse(RequestBase):
+class CatalogDictResponse(MessageBase):
     def __init__(self, data: dict, source=None, destination=None):
         super().__init__()
         self.source = source

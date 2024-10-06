@@ -3,12 +3,14 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.RequestBase import RequestBase, Modules
-from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
-from core.qt_threading.headers.processing_module.GrayscalePictureResponse import GrayscalePictureResponse
+from core.qt_threading.headers.MessageBase import MessageBase, Modules
+
 
 import cv2
 import numpy as np
+
+from core.qt_threading.headers.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest
+from core.qt_threading.headers.processing_module.Responses import ProcessedPictureResponse, GrayscalePictureResponse
 
 
 class ProcessingModule(QObject):
@@ -19,7 +21,7 @@ class ProcessingModule(QObject):
         self.is_running = False
         self.main_thread = QThread()
         self.qt_signals = CommonSignals()
-        self.qt_signals.processing_module_request.connect(self.receive_request)
+        self.qt_signals.processing_module_request.connect(self.handle_request)
 
     def start_process(self):
         self.moveToThread(self.main_thread)
@@ -31,18 +33,34 @@ class ProcessingModule(QObject):
         while self.is_running:
             QApplication.processEvents()
 
-    def receive_request(self, request: RequestBase):
-        if isinstance(request, GrayscalePictureRequest):
-            print(f"[ProcessingModule]: got request: {request}")
-            # numpy_picture = self.QPixmapToArray(request.picture)
-            # process_picture = self.process(numpy_picture)
-            # response_picture = self.convertCvImage2QtImage(process_picture)
+    def handle_request(self, request: MessageBase):
+        request_handlers = {
+            GrayscalePictureRequest: self.handle_grayscale_picture,
+            DoNothingRequest: self.handle_do_nothing,
+        }
 
-            self.qt_signals.processing_module_request.emit(GrayscalePictureResponse(
-                source=Modules.PROCESSING_MODULE,
-                destination=request.source,
-                picture=self.convert_pixmap_to_grayscale(request.picture)
-            ))
+        handler = request_handlers.get(type(request), None)
+        if handler:
+            handler(request)
+
+    def handle_grayscale_picture(self, request: GrayscalePictureRequest):
+        grayscale_image = request.image.convertToFormat(QImage.Format_Grayscale8)
+
+        self.qt_signals.processing_module_request.emit(ProcessedPictureResponse(
+            source=Modules.PROCESSING_MODULE,
+            destination=request.source,
+            picture=grayscale_image
+        ))
+
+    def handle_do_nothing(self, request: DoNothingRequest):
+        # picture = request.picture
+        # numpy_picture = self.QPixmapToNumpy(pixmap=picture)
+        # qpixmap_picture = self.NumpyToQPixmap(data=numpy_picture)
+        self.qt_signals.processing_module_request.emit(ProcessedPictureResponse(
+            source=Modules.PROCESSING_MODULE,
+            destination=request.source,
+            picture=request.image
+        ))
 
     def convert_pixmap_to_grayscale(self, pixmap: QPixmap):
         # Step 1: Convert QPixmap to QImage
@@ -56,15 +74,7 @@ class ProcessingModule(QObject):
 
         return grayscale_pixmap
 
-    def process(self, img):
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_blur = cv2.GaussianBlur(img_gray, (3, 3), 2)
-        img_canny = cv2.Canny(img_blur, 50, 9)
-        img_dilate = cv2.dilate(img_canny, np.ones((4, 2)), iterations=11)
-        img_erode = cv2.erode(img_dilate, np.ones((13, 7)), iterations=4)
-        return cv2.bitwise_not(img_erode)
-
-    def QPixmapToArray(self, pixmap):
+    def QPixmapToNumpy(self, pixmap: QPixmap):
         ## Get the size of the current pixmap
         size = pixmap.size()
         h = size.width()
@@ -79,8 +89,15 @@ class ProcessingModule(QObject):
 
         return img
 
-    def convertCvImage2QtImage(self, data):
+    def NumpyToQImage(self, data) -> QImage:
         height, width = data.shape
-        qimage = QImage(data, width, height, QImage.Format_Grayscale8)
+        return QImage(data, width, height, QImage.Format_Grayscale8)
 
-        return QPixmap.fromImage(qimage)
+    def process(self, img):
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_blur = cv2.GaussianBlur(img_gray, (3, 3), 2)
+        img_canny = cv2.Canny(img_blur, 50, 9)
+        img_dilate = cv2.dilate(img_canny, np.ones((4, 2)), iterations=11)
+        img_erode = cv2.erode(img_dilate, np.ones((13, 7)), iterations=4)
+        return cv2.bitwise_not(img_erode)
+

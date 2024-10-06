@@ -3,15 +3,17 @@ from PySide6.QtWidgets import QMainWindow, QLabel
 
 from core.catalog.Coin import Coin
 from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
-from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.RequestBase import RequestBase, Modules
-from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictRequest
+from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
+from core.qt_threading.headers.MessageBase import MessageBase, Modules
+from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictMessage
 from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
-from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
+from core.qt_threading.headers.catalog_handler.PictureRequest import PictureMessage
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
-from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
-from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureRequest
-from core.qt_threading.headers.video_thread.CameraListRequest import CameraListRequest
+from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateMessage
+from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureMessage
+from core.qt_threading.headers.processing_module.Requests import GrayscalePictureRequest
+from core.qt_threading.headers.processing_module.Responses import ProcessedPictureResponse
+from core.qt_threading.headers.video_thread.CameraListRequest import CameraListMessage
 from core.qt_threading.headers.video_thread.CameraListResponse import CameraListResponse
 from core.qt_threading.headers.video_thread.FrameAvailable import FrameAvailable
 from core.ui.ImageFrame import ImageFrame
@@ -40,18 +42,19 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.overlay.setGeometry(self.video_frame.rect())
 
         self.qt_signals.catalog_handler_response.connect(self.receive_request)
-        self.qt_signals.video_thread_response.connect(self.receive_request)
+        self.qt_signals.video_thread_request.connect(self.receive_request)
+        self.qt_signals.frame_available.connect(self.receive_request)
         self.next_gallery_photo_button.clicked.connect(self.next_picture_button_callback)
         self.previous_gallery_photo_button.clicked.connect(self.previous_picture_button_callback)
         self.overlay.mouse_released.connect(self.update_edges)
         self.save_photo_button.clicked.connect(self.save_photo)
         self.tabWidget.currentChanged.connect(self.tab_bar_click_routine)
 
-        self.qt_signals.catalog_handler_request.emit(CatalogDictRequest(source=Modules.GALLERY_WINDOW))
+        self.qt_signals.catalog_handler_request.emit(CatalogDictMessage(source=Modules.GALLERY_WINDOW))
         QTimer.singleShot(0, self.request_camera_ids)
 
     @Slot()
-    def receive_request(self, request: RequestBase):
+    def receive_request(self, request: MessageBase):
         # print("receive_request")
         current_tab_index = self.tabWidget.currentIndex()
 
@@ -89,6 +92,21 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                 # print(vertices)
                 # print(picture)
 
+        elif isinstance(request, ProcessedPictureResponse):
+            if self.tabWidget.tabText(current_tab_index) == "Camera":
+                picture = request.picture
+                vertices = request.vertices
+                self.video_frame.set_image(picture)
+                width = self.video_frame.width()
+                height = self.video_frame.height()
+                crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
+
+                # self.overlay.init_image_with_vertices(self.catalog_handler.active_coin, self.current_coin_photo_id)
+                self.overlay.crosses = crosses
+                self.overlay.show()
+                # print(vertices)
+                # print(picture)
+
         if isinstance(request, CatalogDictResponse):
             print(f"[ImageGalleryWindow]: {request.catalog}")
 
@@ -103,7 +121,18 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         elif isinstance(request, FrameAvailable):
             if self.tabWidget.tabText(current_tab_index) == "Camera":
-                self.video_frame.set_image(request.frame)
+                message = GrayscalePictureRequest(
+                    source=Modules.CATALOG_HANDLER,
+                    destination=Modules.PROCESSING_MODULE,
+                    image=request.frame)
+
+                response: ProcessedPictureResponse = blocking_response_message_await(
+                    request_signal=self.qt_signals.processing_module_request,
+                    request_message=message,
+                    response_signal=self.qt_signals.processing_module_request,
+                    response_message_type=ProcessedPictureResponse)
+
+                self.video_frame.set_image(response.picture)
 
     def tab_bar_click_routine(self):
         current_tab_index = self.tabWidget.currentIndex()
@@ -115,7 +144,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             self.active_coin: Coin = self.catalog[year][country][name]
             self.image_idx %= len(self.active_coin.pictures.keys())
             self.current_picture_name = list(self.active_coin.pictures.keys())[self.image_idx]
-            self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=self.active_coin,
+            self.qt_signals.catalog_handler_request.emit(PictureMessage(coin=self.active_coin,
                                                                         picture=self.current_picture_name,
                                                                         source=Modules.GALLERY_WINDOW,
                                                                         destination=Modules.CATALOG_HANDLER))
@@ -126,7 +155,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     @Slot()
     def request_camera_ids(self):
         print("request_camera_ids")
-        self.qt_signals.video_thread_request.emit(CameraListRequest())
+        self.qt_signals.video_thread_request.emit(CameraListMessage())
 
     def next_picture_button_callback(self):
         print(f"Next button")
@@ -164,13 +193,13 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.active_coin: Coin = self.catalog[year][country][name]
         self.image_idx %= len(self.active_coin.pictures.keys())
         self.current_picture_name = list(self.active_coin.pictures.keys())[self.image_idx]
-        self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=self.active_coin,
+        self.qt_signals.catalog_handler_request.emit(PictureMessage(coin=self.active_coin,
                                                                     picture=self.current_picture_name,
                                                                     source=Modules.GALLERY_WINDOW,
                                                                     destination=Modules.CATALOG_HANDLER))
 
     def save_photo(self):
-        request = SavePictureRequest(picture=self.video_frame.image_label.pixmap(),
+        request = SavePictureMessage(picture=self.video_frame.image_label.pixmap(),
                                      coin=self.active_coin)
         self.qt_signals.catalog_handler_request.emit(request)
 
@@ -178,7 +207,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         width = self.video_frame.width()
         height = self.video_frame.height()
         vertices = [(point.x() / width, point.y() / height) for point in crosses]
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+        request = PictureVerticesUpdateMessage(source=Modules.DRAGGABLE_CROSS_OVERLAY,
                                                destination=Modules.CATALOG_HANDLER,
                                                coin=self.active_coin,
                                                vertices=vertices,

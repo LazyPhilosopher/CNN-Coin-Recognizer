@@ -1,10 +1,10 @@
 from PySide6.QtCore import QPoint
 
 from core.catalog.Coin import Coin
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 
-class PictureVerticesUpdateRequest(RequestBase):
+class PictureVerticesUpdateMessage(MessageBase):
     def __init__(self,
                  vertices: list[tuple[int, int]],
                  coin: Coin,

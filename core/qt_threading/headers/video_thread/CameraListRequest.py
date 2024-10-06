@@ -1,7 +1,7 @@
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 
-class CameraListRequest(RequestBase):
+class CameraListMessage(MessageBase):
     def __init__(self, source=None, destination=None):
         super().__init__()
         self.source = source

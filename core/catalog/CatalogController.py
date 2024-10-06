@@ -9,15 +9,14 @@ from PySide6.QtWidgets import QApplication
 
 from core.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
-from core.qt_threading.headers.RequestBase import RequestBase, Modules
-from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictRequest
+from core.qt_threading.headers.MessageBase import MessageBase, Modules
+from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictMessage
 from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
-from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
+from core.qt_threading.headers.catalog_handler.PictureRequest import PictureMessage
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
-from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
-from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureRequest
-from core.qt_threading.headers.processing_module.GrayscalePictureRequest import GrayscalePictureRequest
-from core.qt_threading.headers.processing_module.GrayscalePictureResponse import GrayscalePictureResponse
+from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateMessage
+from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureMessage
+
 
 CATALOG_FILE_NAME = "catalog"
 
@@ -124,18 +123,18 @@ class CoinCatalogHandler(QObject):
             self.current_picture = QPixmap(os.path.join(coin_dir_path, picture))
             vertices = coin.pictures[picture]["vertices"]
 
-            message = GrayscalePictureRequest(
-                source=Modules.CATALOG_HANDLER,
-                destination=Modules.PROCESSING_MODULE,
-                picture=self.current_picture)
+            # message = GrayscalePictureRequuest(
+            #     source=Modules.CATALOG_HANDLER,
+            #     destination=Modules.PROCESSING_MODULE,
+            #     picture=self.current_picture)
+            #
+            # response = blocking_response_message_await(
+            #     request_signal=self.qt_signals.processing_module_request,
+            #     request_message=message,
+            #     response_signal=self.qt_signals.processing_module_request,
+            #     response_message_type=PictureResponse)
 
-            response = blocking_response_message_await(
-                request_signal=self.qt_signals.processing_module_request,
-                request_message=message,
-                response_signal=self.qt_signals.processing_module_request,
-                response_message_type=GrayscalePictureResponse)
-
-            self.current_picture = response.picture
+            self.current_picture = self.current_picture
 
             # Check if the image is loaded successfully
             if self.current_picture.isNull():
@@ -176,25 +175,25 @@ class CoinCatalogHandler(QObject):
             return False
         return True
 
-    def receive_request(self, request: RequestBase):
+    def receive_request(self, request: MessageBase):
         print(f"[CoinCatalogHandler]: got request: {request}")
-        if isinstance(request, CatalogDictRequest):
+        if isinstance(request, CatalogDictMessage):
             response = CatalogDictResponse(source=Modules.CATALOG_HANDLER, destination=request.source, data=self.coin_catalog_dict)
             self.qt_signals.catalog_handler_response.emit(response)
-        elif isinstance(request, PictureRequest):
+        elif isinstance(request, PictureMessage):
             picture, vertices = self.get_coin_photo_from_catalog(request.coin, request.picture)
             response = PictureResponse(source=Modules.CATALOG_HANDLER,
                                        destination=request.source,
                                        picture=picture,
                                        vertices=vertices)
             self.qt_signals.catalog_handler_response.emit(response)
-        elif isinstance(request, PictureVerticesUpdateRequest):
+        elif isinstance(request, PictureVerticesUpdateMessage):
             vertices = request.vertices
             coin = request.coin
             picture_file = request.picture_file
             self.set_coin_photo_vertices(coin=coin, picture_file=picture_file, vertices_coordinates=vertices)
             self.write_catalog()
-        elif isinstance(request, SavePictureRequest):
+        elif isinstance(request, SavePictureMessage):
             self.add_coin_picture(picture=request.picture,
                                   coin=request.coin)
 

@@ -2,9 +2,9 @@ from PySide6.QtCore import Slot, QTimer
 from PySide6.QtWidgets import QMainWindow
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.RequestBase import RequestBase, Modules
-from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureRequest
-from core.qt_threading.headers.video_thread.CameraListRequest import CameraListRequest
+from core.qt_threading.headers.MessageBase import MessageBase, Modules
+from core.qt_threading.headers.catalog_handler.SavePictureRequest import SavePictureMessage
+from core.qt_threading.headers.video_thread.CameraListRequest import CameraListMessage
 from core.qt_threading.headers.video_thread.CameraListResponse import CameraListResponse
 from core.qt_threading.headers.video_thread.ChangeVideoInput import ChangeVideoInput
 from core.qt_threading.headers.video_thread.FrameAvailable import FrameAvailable
@@ -24,7 +24,7 @@ class AddNewImageWindow(QMainWindow, Ui_AddNewImageWindow):
         # Display camera frames
         # self.qt_signals.frame_available.connect(self.replace_video_frame)
 
-        self.qt_signals.video_thread_response.connect(self.receive_request)
+        self.qt_signals.video_thread_request.connect(self.receive_request)
         # self.save_photo_button.connect(self.save_photo)
         self.camera_swich_combo_box.currentIndexChanged.connect(self.camera_change_event)
         self.save_photo_button.clicked.connect(self.save_image)
@@ -44,11 +44,11 @@ class AddNewImageWindow(QMainWindow, Ui_AddNewImageWindow):
     def request_camera_ids(self):
         # self.signals.request_cameras_ids.emit()
         print("request_camera_ids")
-        self.qt_signals.video_thread_request.emit(CameraListRequest())
+        self.qt_signals.video_thread_request.emit(CameraListMessage())
         # self.signals.catalog_handler_request.emit("camera request")
 
     @Slot()
-    def receive_request(self, request: RequestBase):
+    def receive_request(self, request: MessageBase):
         # print("receive_request")
         if isinstance(request, CameraListResponse):
             # print(f"[AddNewImageWindow]: {request}")
@@ -74,7 +74,7 @@ class AddNewImageWindow(QMainWindow, Ui_AddNewImageWindow):
     def save_image(self):
         # print("replace_video_frame")
         print(f"save picture")
-        request = SavePictureRequest(source=Modules.ADD_NEW_PICTURE_WINDOW,
+        request = SavePictureMessage(source=Modules.ADD_NEW_PICTURE_WINDOW,
                                      destination=Modules.CATALOG_HANDLER,
                                      picture=self.video_frame.image_label.picture())
         self.qt_signals.catalog_handler_request.emit(request)

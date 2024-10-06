@@ -5,13 +5,13 @@ from PySide6.QtWidgets import QMainWindow, QLabel
 from core.catalog.Coin import Coin
 from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers import RequestBase
-from core.qt_threading.headers.RequestBase import Modules
-from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictRequest
+from core.qt_threading.headers import MessageBase
+from core.qt_threading.headers.MessageBase import Modules
+from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictMessage
 from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
-from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
+from core.qt_threading.headers.catalog_handler.PictureRequest import PictureMessage
 from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
-from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
+from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateMessage
 from core.ui.pyqt6_designer.d_gallery_window import Ui_GalleryWindow
 
 
@@ -29,7 +29,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
 
         self.qt_signals = CommonSignals()
 
-        self.qt_signals.catalog_handler_request.emit(CatalogDictRequest(source=Modules.GALLERY_WINDOW))
+        self.qt_signals.catalog_handler_request.emit(CatalogDictMessage(source=Modules.GALLERY_WINDOW))
 
         self.qt_signals.catalog_handler_response.connect(self.receive_request)
 
@@ -52,11 +52,11 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
     @Slot()
     def request_catalog_dict(self):
         # self.signals.request_cameras_ids.emit()
-        self.qt_signals.catalog_handler_request.emit(CatalogDictRequest())
+        self.qt_signals.catalog_handler_request.emit(CatalogDictMessage())
         # self.signals.catalog_handler_request.emit("camera request")
 
     @Slot()
-    def receive_request(self, request: RequestBase):
+    def receive_request(self, request: MessageBase):
         # print("receive_request")
         if isinstance(request, CatalogDictResponse):
             print(f"[ImageGalleryWindow]: {request.catalog}")
@@ -133,7 +133,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.active_coin: Coin = self.catalog[year][country][name]
         self.image_idx %= len(self.active_coin.pictures.keys())
         self.current_picture_name = list(self.active_coin.pictures.keys())[self.image_idx]
-        self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=self.active_coin,
+        self.qt_signals.catalog_handler_request.emit(PictureMessage(coin=self.active_coin,
                                                                     picture=self.current_picture_name,
                                                                     source=Modules.GALLERY_WINDOW,
                                                                     destination=Modules.CATALOG_HANDLER))
@@ -142,7 +142,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         width = self.image_label.width()
         height = self.image_label.height()
         vertices = [(point.x() / width, point.y() / height) for point in crosses]
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+        request = PictureVerticesUpdateMessage(source=Modules.DRAGGABLE_CROSS_OVERLAY,
                                                destination=Modules.CATALOG_HANDLER,
                                                coin=self.active_coin,
                                                vertices=vertices,
@@ -153,7 +153,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
 
     def reset_coin_vertices(self):
         vertices = []
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+        request = PictureVerticesUpdateMessage(source=Modules.DRAGGABLE_CROSS_OVERLAY,
                                                destination=Modules.CATALOG_HANDLER,
                                                coin=self.active_coin,
                                                vertices=vertices,

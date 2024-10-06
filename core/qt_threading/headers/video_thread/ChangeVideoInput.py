@@ -1,9 +1,9 @@
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 body: dict = {"device_id": None}
 
 
-class ChangeVideoInput(RequestBase):
+class ChangeVideoInput(MessageBase):
     def __init__(self, device_id: int, source=None, destination=None):
         super().__init__()
         self.source = source

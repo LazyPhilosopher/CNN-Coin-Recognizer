@@ -1,7 +1,5 @@
 from enum import Enum
 
-request_base: dict = {"header": {}, "body": {}}
-
 
 class Modules(Enum):
     MAIN = 1
@@ -13,13 +11,7 @@ class Modules(Enum):
     ADD_NEW_PICTURE_WINDOW = 7
 
 
-class RequestBase:
+class MessageBase:
     def __init__(self):
-        # Initialize the instance variables based on the dictionary keys
-        # for key, value in request_base.items():
-        #     setattr(self, key, value)
         self.source: Modules | None = None
         self.destination: Modules | None = None
-
-        self.header = ""
-        self.body = {}

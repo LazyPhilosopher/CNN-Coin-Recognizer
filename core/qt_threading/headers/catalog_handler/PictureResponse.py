@@ -1,7 +1,7 @@
-from core.qt_threading.headers.RequestBase import RequestBase
+from core.qt_threading.headers.MessageBase import MessageBase
 
 
-class PictureResponse(RequestBase):
+class PictureResponse(MessageBase):
     def __init__(self,  picture, vertices, source=None, destination=None):
         super().__init__()
         self.picture = picture
