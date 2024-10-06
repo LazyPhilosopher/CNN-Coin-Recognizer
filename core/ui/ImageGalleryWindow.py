@@ -4,11 +4,11 @@ from PySide6.QtWidgets import QMainWindow, QLabel
 from core.catalog.Coin import Coin
 from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers import MessageBase
-from core.qt_threading.headers.MessageBase import Modules
-from core.qt_threading.headers.catalog_handler.Requests import CatalogDictRequest, PictureVerticesUpdateRequest, \
+from core.qt_threading.messages import MessageBase
+from core.qt_threading.messages.MessageBase import Modules
+from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, PictureVerticesUpdateRequest, \
     PictureRequest
-from core.qt_threading.headers.catalog_handler.Responses import CatalogDictResponse, PictureResponse
+from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, PictureResponse
 from core.ui.pyqt6_designer.d_gallery_window import Ui_GalleryWindow
 
 

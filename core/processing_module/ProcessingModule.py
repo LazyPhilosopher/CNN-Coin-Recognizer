@@ -3,14 +3,14 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.MessageBase import MessageBase, Modules
+from core.qt_threading.messages.MessageBase import MessageBase, Modules
 
 
 import cv2
 import numpy as np
 
-from core.qt_threading.headers.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest
-from core.qt_threading.headers.processing_module.Responses import ProcessedImageResponse
+from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest
+from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
 
 
 class ProcessingModule(QObject):

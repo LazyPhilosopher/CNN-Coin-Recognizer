@@ -4,15 +4,15 @@ from PySide6.QtWidgets import QMainWindow
 from core.catalog.Coin import Coin
 from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
-from core.qt_threading.headers.MessageBase import MessageBase, Modules
-from core.qt_threading.headers.catalog_handler.Requests import CatalogDictRequest, \
+from core.qt_threading.messages.MessageBase import MessageBase, Modules
+from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, \
     PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest
-from core.qt_threading.headers.catalog_handler.Responses import CatalogDictResponse, \
+from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, \
     PictureResponse
-from core.qt_threading.headers.processing_module.Requests import GrayscalePictureRequest
-from core.qt_threading.headers.processing_module.Responses import ProcessedImageResponse
-from core.qt_threading.headers.video_thread.Requests import FrameAvailable, CameraListMessage
-from core.qt_threading.headers.video_thread.Responses import CameraListResponse
+from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest
+from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
+from core.qt_threading.messages.video_thread.Requests import FrameAvailable, CameraListMessage
+from core.qt_threading.messages.video_thread.Responses import CameraListResponse
 from core.ui.ImageFrame import ImageFrame
 from core.ui.pyqt6_designer.d_ImageCollector import Ui_ImageCollector
 

@@ -7,9 +7,9 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.MessageBase import MessageBase, Modules
-from core.qt_threading.headers.video_thread.Requests import CameraListMessage, ChangeVideoInput, FrameAvailable
-from core.qt_threading.headers.video_thread.Responses import CameraListResponse
+from core.qt_threading.messages.MessageBase import MessageBase, Modules
+from core.qt_threading.messages.video_thread.Requests import CameraListMessage, ChangeVideoInput, FrameAvailable
+from core.qt_threading.messages.video_thread.Responses import CameraListResponse
 
 
 class VideoStream(QObject):

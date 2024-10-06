@@ -2,7 +2,7 @@ from typing import Type
 
 from PySide6.QtCore import QObject, Signal, QEventLoop
 
-from core.qt_threading.headers.MessageBase import MessageBase
+from core.qt_threading.messages.MessageBase import MessageBase
 
 
 def singleton(cls):

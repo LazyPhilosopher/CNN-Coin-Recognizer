@@ -7,10 +7,10 @@ from PySide6.QtGui import QPixmap
 
 from core.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers.MessageBase import MessageBase, Modules
-from core.qt_threading.headers.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
+from core.qt_threading.messages.MessageBase import MessageBase, Modules
+from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
     SavePictureRequest, PictureRequest, CatalogDictRequest
-from core.qt_threading.headers.catalog_handler.Responses import PictureVerticesResponse, PictureResponse, \
+from core.qt_threading.messages.catalog_handler.Responses import PictureVerticesResponse, PictureResponse, \
     CatalogDictResponse
 
 

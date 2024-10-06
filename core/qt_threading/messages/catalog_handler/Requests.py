@@ -1,7 +1,7 @@
 from PySide6.QtGui import QPixmap
 
 from core.catalog.Coin import Coin
-from core.qt_threading.headers.MessageBase import MessageBase
+from core.qt_threading.messages.MessageBase import MessageBase
 
 
 class CatalogDictRequest(MessageBase):

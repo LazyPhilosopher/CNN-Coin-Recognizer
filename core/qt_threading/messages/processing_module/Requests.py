@@ -1,6 +1,6 @@
 from PySide6.QtGui import QPixmap, QImage
 
-from core.qt_threading.headers.MessageBase import MessageBase
+from core.qt_threading.messages.MessageBase import MessageBase
 
 
 class DoNothingRequest(MessageBase):
