@@ -1,8 +1,8 @@
 from PySide6.QtCore import QPoint, Slot, QTimer
 from PySide6.QtWidgets import QMainWindow
 
-from core.catalog.Coin import Coin
-from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
+from core.modules.catalog.Coin import Coin
+from core.modules.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, \
@@ -13,8 +13,8 @@ from core.qt_threading.messages.processing_module.Requests import GrayscalePictu
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
 from core.qt_threading.messages.video_thread.Requests import FrameAvailable, CameraListMessage
 from core.qt_threading.messages.video_thread.Responses import CameraListResponse
-from core.ui.ImageFrame import ImageFrame
-from core.ui.pyqt6_designer.d_ImageCollector import Ui_ImageCollector
+from core.designer.ImageFrame import ImageFrame
+from core.designer.pyqt6_designer.d_ImageCollector import Ui_ImageCollector
 
 
 class ImageCollector(QMainWindow, Ui_ImageCollector):
@@ -42,6 +42,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.qt_signals.frame_available.connect(self.handle_request)
         self.next_gallery_photo_button.clicked.connect(self.next_picture_button_callback)
         self.previous_gallery_photo_button.clicked.connect(self.previous_picture_button_callback)
+        self.vertices_reset_button.clicked.connect(self.reset_coin_vertices)
         self.overlay.mouse_released.connect(self.update_edges)
         self.save_photo_button.clicked.connect(self.save_photo)
         self.tabWidget.currentChanged.connect(self.tab_bar_click_routine)
@@ -212,4 +213,13 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         country = self.coin_catalog_country_dropbox.currentText()
         name = self.coin_catalog_name_dropbox.currentText()
         self.active_coin = self.catalog[year][country][name]
-        print(f"Active coin: {self.active_coin} {self.active_coin.year} {self.active_coin.country} {self.active_coin.name}")
+
+    def reset_coin_vertices(self):
+        vertices = []
+        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+                                               destination=Modules.CATALOG_HANDLER,
+                                               coin=self.active_coin,
+                                               vertices=vertices,
+                                               picture_file=self.current_picture_name)
+        self.qt_signals.catalog_handler_request.emit(request)
+        self.request_picture()

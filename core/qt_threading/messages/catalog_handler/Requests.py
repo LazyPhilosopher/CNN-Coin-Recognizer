@@ -1,6 +1,6 @@
 from PySide6.QtGui import QPixmap
 
-from core.catalog.Coin import Coin
+from core.modules.catalog.Coin import Coin
 from core.qt_threading.messages.MessageBase import MessageBase
 
 

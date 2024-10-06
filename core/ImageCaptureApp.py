@@ -2,11 +2,11 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from core.catalog.CatalogController import CoinCatalogHandler
-from core.processing_module.ProcessingModule import ProcessingModule
+from core.modules.catalog.CatalogController import CoinCatalogHandler
+from core.modules.processing_module.ProcessingModule import ProcessingModule
 from core.qt_threading.common_signals import CommonSignals
-from core.ui.AppWindow import AppWindow
-from core.video.video import VideoStream
+from core.designer.AppWindow import AppWindow
+from core.modules.video.Video import VideoStream
 
 
 class ImageCaptureApp:

@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import QMainWindow
 
-from core.ui.pyqt6_designer.d_main_window import Ui_MainWindow
+from core.designer.pyqt6_designer.d_main_window import Ui_MainWindow
 
-from core.ui.ImageGalleryWindow import ImageGalleryWindow
-from core.ui.ImageCollector import ImageCollector
+from core.designer.ImageGalleryWindow import ImageGalleryWindow
+from core.designer.ImageCollector import ImageCollector
 
 
 class AppWindow(QMainWindow, Ui_MainWindow):

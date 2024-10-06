@@ -5,7 +5,7 @@ import uuid
 from PySide6.QtCore import QObject, QThread
 from PySide6.QtGui import QPixmap
 
-from core.catalog.Coin import Coin
+from core.modules.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
