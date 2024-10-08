@@ -1,4 +1,5 @@
 from PySide6.QtCore import QPoint, Slot, QTimer
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QMainWindow
 
 from core.modules.catalog.Coin import Coin
@@ -9,7 +10,8 @@ from core.qt_threading.messages.catalog_handler.Requests import CatalogDictReque
     PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest
 from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, \
     PictureResponse
-from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest
+from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundDictionary
+from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, RemoveBackgroundRequest
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
 from core.qt_threading.messages.video_thread.Requests import FrameAvailable, CameraListMessage
 from core.qt_threading.messages.video_thread.Responses import CameraListResponse
@@ -69,12 +71,10 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         self.catalog = request.catalog
         try:
-            year = self.coin_catalog_year_dropbox.currentText()
-            country = self.coin_catalog_country_dropbox.currentText()
-            name = self.coin_catalog_name_dropbox.currentText()
-            self.active_coin: Coin = self.catalog[year][country][name]
+            self.update_active_coin()
         except KeyError:
             self.reset_doropboxes()
+            self.update_active_coin()
 
     def handle_camera_list_response(self, request: CameraListResponse):
         self.camera_swich_combo_box.addItems(request.cameras)
@@ -95,11 +95,13 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     def handle_frame_available_request(self, request: FrameAvailable):
         current_tab_index = self.tabWidget.currentIndex()
         if self.tabWidget.tabText(current_tab_index) == "Camera":
-            # Convert Image to Grayscale
-            message = GrayscalePictureRequest(
+
+            param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
+            message = RemoveBackgroundRequest(
                 source=Modules.CATALOG_HANDLER,
                 destination=Modules.PROCESSING_MODULE,
-                image=request.frame)
+                picture=request.frame,
+                param_dict=param_dict)
 
             response: ProcessedImageResponse = blocking_response_message_await(
                 request_signal=self.qt_signals.processing_module_request,
@@ -223,3 +225,17 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                                                picture_file=self.current_picture_name)
         self.qt_signals.catalog_handler_request.emit(request)
         self.request_picture()
+
+    def get_background_removal_params_dict(self) -> dict:
+        param_dict: RemoveBackgroundDictionary = RemoveBackgroundDictionary
+        param_dict["Blur Kernel"] = self.blur_kernel_slider.value()
+        param_dict["Blur Sigma"] = self.blur_sigma_slider.value()
+        param_dict["Canny Threshold 1"] = self.canny_thr_1_slider.value()
+        param_dict["Canny Threshold 2"] = self.canny_thr_2_slider.value()
+        param_dict["Dilate Kernel1"] = self.dilate_1_slider.value()
+        param_dict["Dilate Kernel2"] = self.dilate_2_slider.value()
+        param_dict["Erode Kernel1"] = self.erode_1_slider.value()
+        param_dict["Erode Kernel2"] = self.erode_2_slider.value()
+        param_dict["Dilate Iterations"] = self.dilate_iter_slider.value()
+        param_dict["Erode Iterations"] = self.erode_iter_slider.value()
+        return param_dict

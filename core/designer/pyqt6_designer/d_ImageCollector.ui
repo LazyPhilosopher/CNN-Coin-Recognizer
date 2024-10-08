@@ -11,14 +11,14 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Image Collector</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
       <x>630</x>
-      <y>395</y>
+      <y>445</y>
       <width>49</width>
       <height>16</height>
      </rect>
@@ -49,7 +49,7 @@
       <x>630</x>
       <y>5</y>
       <width>231</width>
-      <height>351</height>
+      <height>401</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -139,7 +139,7 @@
        <string>New Coin</string>
       </property>
      </widget>
-     <widget class="QSlider" name="blurr_kernel_slider_1">
+     <widget class="QSlider" name="blur_kernel_slider">
       <property name="geometry">
        <rect>
         <x>89</x>
@@ -147,6 +147,12 @@
         <width>131</width>
         <height>10</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <number>3</number>
+      </property>
+      <property name="maximum">
+       <number>50</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -165,7 +171,7 @@
        <string>Blur Kernel</string>
       </property>
      </widget>
-     <widget class="QSlider" name="blur_kernel_2_slider">
+     <widget class="QSlider" name="blur_sigma_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -174,11 +180,17 @@
         <height>10</height>
        </rect>
       </property>
+      <property name="minimum">
+       <number>2</number>
+      </property>
+      <property name="maximum">
+       <number>30</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="canny_1_slider">
+     <widget class="QSlider" name="canny_thr_1_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -187,11 +199,17 @@
         <height>10</height>
        </rect>
       </property>
+      <property name="minimum">
+       <number>50</number>
+      </property>
+      <property name="maximum">
+       <number>500</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="canny_2_slider">
+     <widget class="QSlider" name="canny_thr_2_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -199,6 +217,12 @@
         <width>131</width>
         <height>10</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <number>9</number>
+      </property>
+      <property name="maximum">
+       <number>500</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -213,6 +237,12 @@
         <height>10</height>
        </rect>
       </property>
+      <property name="minimum">
+       <number>4</number>
+      </property>
+      <property name="maximum">
+       <number>50</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -226,6 +256,12 @@
         <height>10</height>
        </rect>
       </property>
+      <property name="minimum">
+       <number>2</number>
+      </property>
+      <property name="maximum">
+       <number>50</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -238,6 +274,12 @@
         <width>131</width>
         <height>10</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <number>13</number>
+      </property>
+      <property name="maximum">
+       <number>50</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -266,7 +308,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Canny 1</string>
+       <string>Canny Thr 2</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_8">
@@ -279,7 +321,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Canny 2</string>
+       <string>Canny Thr 2</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_9">
@@ -292,7 +334,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Dilate 1</string>
+       <string>Dilate Kernel1</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_10">
@@ -305,7 +347,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Dilate 2</string>
+       <string>Dilate Kernel2</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_11">
@@ -318,7 +360,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Erode 1</string>
+       <string>Erode Kernel1</string>
       </property>
      </widget>
      <widget class="QSlider" name="erode_2_slider">
@@ -329,6 +371,12 @@
         <width>131</width>
         <height>10</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <number>7</number>
+      </property>
+      <property name="maximum">
+       <number>50</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -344,7 +392,68 @@
        </rect>
       </property>
       <property name="text">
-       <string>Erode 2</string>
+       <string>Erode Kernel2</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="dilate_iter_slider">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>320</y>
+        <width>131</width>
+        <height>10</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>11</number>
+      </property>
+      <property name="maximum">
+       <number>40</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="erode_iter_slider">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>340</y>
+        <width>131</width>
+        <height>10</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>4</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_13">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>320</y>
+        <width>71</width>
+        <height>10</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Dilate Iter</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_14">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>340</y>
+        <width>71</width>
+        <height>10</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Erode Iter</string>
       </property>
      </widget>
     </widget>
@@ -402,7 +511,7 @@
     <property name="geometry">
      <rect>
       <x>700</x>
-      <y>365</y>
+      <y>415</y>
       <width>161</width>
       <height>22</height>
      </rect>
@@ -431,7 +540,7 @@
     <property name="geometry">
      <rect>
       <x>630</x>
-      <y>425</y>
+      <y>475</y>
       <width>61</width>
       <height>16</height>
      </rect>
@@ -444,9 +553,9 @@
     <property name="geometry">
      <rect>
       <x>630</x>
-      <y>460</y>
+      <y>500</y>
       <width>231</width>
-      <height>151</height>
+      <height>101</height>
      </rect>
     </property>
     <property name="readOnly">
@@ -460,7 +569,7 @@
     <property name="geometry">
      <rect>
       <x>700</x>
-      <y>395</y>
+      <y>445</y>
       <width>161</width>
       <height>22</height>
      </rect>
@@ -470,7 +579,7 @@
     <property name="geometry">
      <rect>
       <x>700</x>
-      <y>425</y>
+      <y>475</y>
       <width>161</width>
       <height>22</height>
      </rect>
@@ -480,7 +589,7 @@
     <property name="geometry">
      <rect>
       <x>630</x>
-      <y>370</y>
+      <y>420</y>
       <width>31</width>
       <height>16</height>
      </rect>
