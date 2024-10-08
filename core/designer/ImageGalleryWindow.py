@@ -1,18 +1,15 @@
 from PySide6.QtCore import Slot, QPoint
-from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMainWindow, QLabel
 
-from core.catalog.Coin import Coin
-from core.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
+from core.modules.catalog.Coin import Coin
+from core.modules.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals
-from core.qt_threading.headers import RequestBase
-from core.qt_threading.headers.RequestBase import Modules
-from core.qt_threading.headers.catalog_handler.CatalogDictRequest import CatalogDictRequest
-from core.qt_threading.headers.catalog_handler.CatalogDictResponse import CatalogDictResponse
-from core.qt_threading.headers.catalog_handler.PictureRequest import PictureRequest
-from core.qt_threading.headers.catalog_handler.PictureResponse import PictureResponse
-from core.qt_threading.headers.catalog_handler.PictureVerticesUpdateRequest import PictureVerticesUpdateRequest
-from core.ui.pyqt6_designer.d_gallery_window import Ui_GalleryWindow
+from core.qt_threading.messages import MessageBase
+from core.qt_threading.messages.MessageBase import Modules
+from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, PictureVerticesUpdateRequest, \
+    PictureRequest
+from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, PictureResponse
+from core.designer.pyqt6_designer.d_gallery_window import Ui_GalleryWindow
 
 
 class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
@@ -31,7 +28,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
 
         self.qt_signals.catalog_handler_request.emit(CatalogDictRequest(source=Modules.GALLERY_WINDOW))
 
-        self.qt_signals.catalog_handler_response.connect(self.receive_request)
+        self.qt_signals.catalog_handler_response.connect(self.handle_request)
 
         self.catalog: dict | None = None
         self.active_coin: Coin | None = None
@@ -55,33 +52,38 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.qt_signals.catalog_handler_request.emit(CatalogDictRequest())
         # self.signals.catalog_handler_request.emit("camera request")
 
-    @Slot()
-    def receive_request(self, request: RequestBase):
-        # print("receive_request")
-        if isinstance(request, CatalogDictResponse):
-            print(f"[ImageGalleryWindow]: {request.catalog}")
+    def handle_request(self, request: MessageBase):
+        request_handlers = {
+            CatalogDictResponse: self.handle_catalog_dict_response,
+            PictureResponse: self.handle_picture_response
+        }
 
-            self.catalog = request.catalog
-            self.set_year_dropbox_items()
+        handler = request_handlers.get(type(request), None)
+        if handler:
+            handler(request)
 
-            year = self.coin_catalog_year_dropbox.currentText()
-            self.set_country_dropbox_items(year=year)
+    def handle_catalog_dict_response(self, request: CatalogDictResponse):
+        print(f"[ImageGalleryWindow]: {request.catalog}")
+        self.catalog = request.catalog
+        self.set_year_dropbox_items()
 
-            country = self.coin_catalog_country_dropbox.currentText()
-            self.coin_catalog_name_dropbox.addItems(self.catalog[year][country].keys())
-        if isinstance(request, PictureResponse):
-            picture = request.picture
-            vertices = request.vertices
-            self.image_label.setPixmap(picture)
-            width = self.image_label.width()
-            height = self.image_label.height()
-            crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
+        year = self.coin_catalog_year_dropbox.currentText()
+        self.set_country_dropbox_items(year=year)
 
-            # self.overlay.init_image_with_vertices(self.catalog_handler.active_coin, self.current_coin_photo_id)
-            self.overlay.crosses = crosses
-            self.overlay.show()
-            # print(vertices)
-            # print(picture)
+        country = self.coin_catalog_country_dropbox.currentText()
+        self.coin_catalog_name_dropbox.addItems(self.catalog[year][country].keys())
+
+    def handle_picture_response(self, request: PictureResponse):
+        picture = request.picture
+        vertices = request.vertices
+        self.image_label.setPixmap(picture)
+        width = self.image_label.width()
+        height = self.image_label.height()
+        crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
+
+        # self.overlay.init_image_with_vertices(self.catalog_handler.active_coin, self.current_coin_photo_id)
+        self.overlay.crosses = crosses
+        self.overlay.show()
 
     def set_year_dropbox_items(self):
         self.coin_catalog_year_dropbox.blockSignals(True)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'd_ImageCollector.ui'
+## Form generated from reading UI file 'd_ImageCollector.designer'
 ##
 ## Created by: Qt User Interface Compiler version 6.5.2
 ##
