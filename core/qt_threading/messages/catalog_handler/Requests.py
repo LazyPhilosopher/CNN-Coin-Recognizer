@@ -1,4 +1,4 @@
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QImage
 
 from core.modules.catalog.Coin import Coin
 from core.qt_threading.messages.MessageBase import MessageBase
@@ -21,10 +21,10 @@ class PictureVerticesRequest(MessageBase):
 
 
 class SavePictureRequest(MessageBase):
-    def __init__(self,  coin: Coin, picture: QPixmap, source=None, destination=None):
+    def __init__(self,  coin: Coin, image: QImage, source=None, destination=None):
         super().__init__()
         self.coin = coin
-        self.picture = picture
+        self.image = image
         self.source = source
         self.destination = destination
 
@@ -49,5 +49,23 @@ class PictureRequest(MessageBase):
         super().__init__()
         self.coin = coin
         self.picture = picture
+        self.source = source
+        self.destination = destination
+
+
+class NewCoinRequest(MessageBase):
+    def __init__(self,  coin_year: str, coin_country: str, coin_name: str, source=None, destination=None):
+        super().__init__()
+        self.coin_year = coin_year
+        self.coin_country = coin_country
+        self.coin_name = coin_name
+        self.source = source
+        self.destination = destination
+
+
+class RemoveCoinRequest(MessageBase):
+    def __init__(self,  coin: Coin, source=None, destination=None):
+        super().__init__()
+        self.coin = coin
         self.source = source
         self.destination = destination

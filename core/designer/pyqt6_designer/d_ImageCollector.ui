@@ -505,6 +505,19 @@
      <attribute name="title">
       <string>Coin </string>
      </attribute>
+     <widget class="QPushButton" name="remove_coin_button">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>201</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Remove Selected Coin</string>
+      </property>
+     </widget>
     </widget>
    </widget>
    <widget class="QComboBox" name="coin_catalog_year_dropbox">

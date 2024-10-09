@@ -8,8 +8,10 @@ class Coin:
     name: str = None
     pictures: dict[str, dict]
 
-    def __init__(self, name):
+    def __init__(self, name: str, year: str = None, country: str = None):
         self.name = name
+        self.year = year
+        self.country = country
         self.training_params = {}
         self.pictures = {}
         self.coin_params = {}

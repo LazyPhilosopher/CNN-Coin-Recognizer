@@ -3,13 +3,13 @@ import os
 import uuid
 
 from PySide6.QtCore import QObject, QThread
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QImage
 
 from core.modules.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
-    SavePictureRequest, PictureRequest, CatalogDictRequest
+    SavePictureRequest, PictureRequest, CatalogDictRequest, NewCoinRequest, RemoveCoinRequest
 from core.qt_threading.messages.catalog_handler.Responses import PictureVerticesResponse, PictureResponse, \
     CatalogDictResponse
 
@@ -21,6 +21,7 @@ class CoinCatalogHandler(QObject):
     def __init__(self):
         super().__init__()
         self.qt_signals: CommonSignals = CommonSignals()
+        self.module = Modules.CATALOG_HANDLER
         project_root = 'D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer'
         self.catalog_path = os.path.join(project_root, "coin_catalog")
         self.coin_catalog_dict = {}
@@ -103,7 +104,9 @@ class CoinCatalogHandler(QObject):
             PictureRequest: self.handle_image_with_vertices_request,
             PictureVerticesUpdateRequest: self.handle_image_vertices_update_request,
             SavePictureRequest: self.handle_save_picture_request,
-            PictureVerticesRequest: self.handle_image_vertices_request
+            PictureVerticesRequest: self.handle_image_vertices_request,
+            NewCoinRequest: self.handle_new_coin_request,
+            RemoveCoinRequest: self.handle_remove_coin_request
         }
 
         handler = request_handlers.get(type(request), None)
@@ -132,7 +135,7 @@ class CoinCatalogHandler(QObject):
         self.write_catalog()
 
     def handle_save_picture_request(self, request: SavePictureRequest):
-        self.add_coin_picture(picture=request.picture,
+        self.add_coin_picture(image=request.image,
                               coin=request.coin)
 
     def handle_image_vertices_request(self, request: PictureVerticesRequest):
@@ -149,20 +152,63 @@ class CoinCatalogHandler(QObject):
 
         self.qt_signals.catalog_handler_request.emit(response)
 
-    def add_coin_picture(self, picture: QPixmap, coin: Coin):
+    def handle_new_coin_request(self, request: NewCoinRequest):
+        new_coin = Coin(name=request.coin_name, year=request.coin_year, country=request.coin_country)
+        self.add_coin_to_catalog(coin=new_coin)
+        self.write_catalog()
+        self.handle_coin_catalog_request(CatalogDictRequest(source=self.module, destination=self.module))
+
+    def handle_remove_coin_request(self, request: RemoveCoinRequest):
+        self.remove_coin_from_catalog(coin=request.coin)
+        self.write_catalog()
+        self.handle_coin_catalog_request(CatalogDictRequest(source=self.module, destination=self.module))
+
+    def add_coin_to_catalog(self, coin: Coin):
+        try:
+            _ = self.coin_catalog_dict[coin.year][coin.country][coin.name]
+            # coin already present in catalog
+            return
+        except KeyError:
+            pass
+        if coin.year not in self.coin_catalog_dict:
+            self.coin_catalog_dict[coin.year] = {}
+        if coin.country not in self.coin_catalog_dict[coin.year]:
+            self.coin_catalog_dict[coin.year][coin.country] = {}
+        self.coin_catalog_dict[coin.year][coin.country][coin.name] = coin
+
+    def remove_coin_from_catalog(self, coin: Coin):
+        try:
+            _ = self.coin_catalog_dict[coin.year][coin.country][coin.name]
+            # coin already present in catalog
+        except KeyError:
+            return
+        for picture in self.coin_catalog_dict[coin.year][coin.country][coin.name].pictures:
+            os.remove(os.path.join(self.catalog_path, coin.year, coin.country, coin.name, picture))
+        self.coin_catalog_dict[coin.year][coin.country].pop(coin.name)
+
+        if len(self.coin_catalog_dict[coin.year][coin.country].keys()) == 0:
+            self.coin_catalog_dict[coin.year].pop(coin.country)
+
+        if len(self.coin_catalog_dict[coin.year].keys()) == 0:
+            self.coin_catalog_dict.pop(coin.year)
+
+    def add_coin_picture(self, image: QImage, coin: Coin):
+        pixmap = image.pixmap()
         catalog_coin = self.coin_catalog_dict[coin.year][coin.country][coin.name]
         coin_dir_path: str = os.path.join(self.catalog_path, coin.year, coin.country, coin.name)
         picture_file: str = str(uuid.uuid4()) + ".png"
         absolute_path: str = os.path.join(coin_dir_path, picture_file)
 
-        saved = picture.save(absolute_path)
+        if not os.path.exists(coin_dir_path):
+            os.makedirs(coin_dir_path)
+
+        saved = pixmap.save(absolute_path)
         if saved:
             print(f"image saved to {absolute_path}")
             catalog_coin.add_picture(f"{picture_file}")
             self.write_catalog()
             response = CatalogDictResponse(data=self.coin_catalog_dict)
             self.qt_signals.catalog_handler_response.emit(response)
-
 
     def get_coin_dir_picture_files(self, coin: Coin) -> list[str]:
         coin_dir_path: str = os.path.join(self.catalog_path,

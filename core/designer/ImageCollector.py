@@ -2,12 +2,13 @@ from PySide6.QtCore import QPoint, Slot, QTimer
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QMainWindow
 
+from core.designer.pyqt6_designer.NewCoinDialog import NewCoinDialog
 from core.modules.catalog.Coin import Coin
 from core.modules.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, \
-    PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest
+    PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest, NewCoinRequest, RemoveCoinRequest
 from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, \
     PictureResponse
 from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundDictionary
@@ -25,6 +26,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         super().__init__()
         self.setupUi(self)
         self.qt_signals = CommonSignals()
+        self.module: Modules = Modules.IMAGE_COLLECTOR_WINDOW
 
         self.video_frame = ImageFrame(self.video_frame)
         # self.image_label = QLabel(self.video_frame)
@@ -47,6 +49,8 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.vertices_reset_button.clicked.connect(self.reset_coin_vertices)
         self.overlay.mouse_released.connect(self.update_edges)
         self.save_photo_button.clicked.connect(self.save_photo)
+        self.new_coin_button.clicked.connect(self.new_coin_routine)
+        self.remove_coin_button.clicked.connect(self.remove_coin_routine)
         self.tabWidget.currentChanged.connect(self.tab_bar_click_routine)
         self.coin_catalog_year_dropbox.currentIndexChanged.connect(self.year_dropbox_update_callback)
         self.coin_catalog_country_dropbox.currentIndexChanged.connect(self.country_dropbox_update_callback)
@@ -70,10 +74,11 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         print(f"[ImageGalleryWindow]: {request.catalog}")
 
         self.catalog = request.catalog
+        self.reset_dropboxes()
         try:
-            self.update_active_coin()
-        except KeyError:
-            self.reset_doropboxes()
+            # self.update_active_coin()
+            self.pick_coin_from_dropboxes(self.active_coin)
+        except (AttributeError, KeyError):
             self.update_active_coin()
 
     def handle_camera_list_response(self, request: CameraListResponse):
@@ -161,7 +166,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.coin_catalog_name_dropbox.addItems(self.catalog[year][country].keys())
         self.coin_catalog_name_dropbox.blockSignals(False)
 
-    def reset_doropboxes(self):
+    def reset_dropboxes(self):
         self.set_year_dropbox_items()
         year = self.coin_catalog_year_dropbox.currentText()
         self.set_country_dropbox_items(year=year)
@@ -174,16 +179,45 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         name = self.coin_catalog_name_dropbox.currentText()
 
         self.active_coin: Coin = self.catalog[year][country][name]
-        self.image_idx %= len(self.active_coin.pictures.keys())
-        self.current_picture_name = list(self.active_coin.pictures.keys())[self.image_idx]
-        self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=self.active_coin,
-                                                                    picture=self.current_picture_name,
-                                                                    source=Modules.GALLERY_WINDOW,
-                                                                    destination=Modules.CATALOG_HANDLER))
+
+        if len(self.active_coin.pictures.keys()) == 0:
+            self.image_idx = 0
+            self.current_picture_name = ""
+        else:
+            self.image_idx %= len(self.active_coin.pictures.keys())
+            self.current_picture_name = list(self.active_coin.pictures.keys())[self.image_idx]
+            self.qt_signals.catalog_handler_request.emit(PictureRequest(coin=self.active_coin,
+                                                                        picture=self.current_picture_name,
+                                                                        source=Modules.GALLERY_WINDOW,
+                                                                        destination=Modules.CATALOG_HANDLER))
 
     def save_photo(self):
-        request = SavePictureRequest(picture=self.video_frame.image_label.pixmap(),
+        request = SavePictureRequest(image=self.video_frame.image_label,
                                      coin=self.active_coin)
+        self.qt_signals.catalog_handler_request.emit(request)
+
+    def new_coin_routine(self):
+        dialog = NewCoinDialog()
+        if dialog.exec():
+            print("Dialog closed with Confirm.")
+            year = dialog.coin_year_field.text()
+            country = dialog.coin_country_field.text()
+            name = dialog.coin_name_field.text()
+
+            if year == "" or country == "" or name == "":
+                return
+
+            request = NewCoinRequest(coin_year=year,
+                                     coin_country=country,
+                                     coin_name=name,
+                                     source=self.module,
+                                     destination=Modules.CATALOG_HANDLER)
+            self.qt_signals.catalog_handler_request.emit(request)
+        else:
+            print("Dialog closed with Cancel.")
+
+    def remove_coin_routine(self):
+        request = RemoveCoinRequest(self.active_coin)
         self.qt_signals.catalog_handler_request.emit(request)
 
     def update_edges(self, crosses: list[QPoint]):
@@ -215,6 +249,26 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         country = self.coin_catalog_country_dropbox.currentText()
         name = self.coin_catalog_name_dropbox.currentText()
         self.active_coin = self.catalog[year][country][name]
+
+    def pick_coin_from_dropboxes(self, coin: Coin):
+        try:
+            _ = self.catalog[coin.year][coin.country][coin.name]
+        except:
+            return False
+
+        self.set_year_dropbox_items()
+        year_id = self.coin_catalog_year_dropbox.findText(coin.year)
+        self.coin_catalog_year_dropbox.setCurrentIndex(year_id)
+
+        self.set_country_dropbox_items(year=coin.year)
+        country_id = self.coin_catalog_country_dropbox.findText(coin.country)
+        self.coin_catalog_country_dropbox.setCurrentIndex(country_id)
+
+        self.set_coin_name_dropbox_items(year=coin.year, country=coin.country)
+        name_id = self.coin_catalog_name_dropbox.findText(coin.name)
+        self.coin_catalog_name_dropbox.setCurrentIndex(name_id)
+
+        return True
 
     def reset_coin_vertices(self):
         vertices = []
