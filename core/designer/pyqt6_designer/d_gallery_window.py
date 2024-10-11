@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'd_gallery_window.designer'
+## Form generated from reading UI file 'd_gallery_window.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.5.2
 ##
@@ -45,9 +45,9 @@ class Ui_GalleryWindow(object):
         self.coin_catalog_name_dropbox = QComboBox(self.centralwidget)
         self.coin_catalog_name_dropbox.setObjectName(u"coin_catalog_name_dropbox")
         self.coin_catalog_name_dropbox.setGeometry(QRect(340, 130, 161, 31))
-        self.reset_coin_vertices_button = QPushButton(self.centralwidget)
-        self.reset_coin_vertices_button.setObjectName(u"reset_coin_vertices_button")
-        self.reset_coin_vertices_button.setGeometry(QRect(340, 170, 161, 31))
+        self.reset_coin_contour_button = QPushButton(self.centralwidget)
+        self.reset_coin_contour_button.setObjectName(u"reset_coin_contour_button")
+        self.reset_coin_contour_button.setGeometry(QRect(340, 170, 161, 31))
         GalleryWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(GalleryWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -62,6 +62,6 @@ class Ui_GalleryWindow(object):
         GalleryWindow.setWindowTitle(QCoreApplication.translate("GalleryWindow", u"Gallery Window", None))
         self.next_button.setText(QCoreApplication.translate("GalleryWindow", u"Next", None))
         self.previous_button.setText(QCoreApplication.translate("GalleryWindow", u"Previous", None))
-        self.reset_coin_vertices_button.setText(QCoreApplication.translate("GalleryWindow", u"Erase Vertices", None))
+        self.reset_coin_contour_button.setText(QCoreApplication.translate("GalleryWindow", u"Erase Coin Contour", None))
     # retranslateUi
 

@@ -86,7 +86,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="reset_coin_vertices_button">
+   <widget class="QPushButton" name="reset_coin_contour_button">
     <property name="geometry">
      <rect>
       <x>340</x>
@@ -96,7 +96,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Erase Vertices</string>
+     <string>Erase Coin Contour</string>
     </property>
    </widget>
   </widget>

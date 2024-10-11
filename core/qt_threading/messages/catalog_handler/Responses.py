@@ -1,19 +1,19 @@
 from core.qt_threading.messages.MessageBase import MessageBase
 
 
-class PictureVerticesResponse(MessageBase):
-    def __init__(self, vertices: list[tuple[int, int]], source=None, destination=None):
+class PictureContourResponse(MessageBase):
+    def __init__(self, contour: list[tuple[int, int]], source=None, destination=None):
         super().__init__()
         self.source = source
         self.destination = destination
-        self.vertices = vertices
+        self.contour = contour
 
 
 class PictureResponse(MessageBase):
-    def __init__(self,  picture, vertices, source=None, destination=None):
+    def __init__(self,  picture, contour, source=None, destination=None):
         super().__init__()
         self.picture = picture
-        self.vertices = vertices
+        self.contour = contour
         self.source = source
         self.destination = destination
 

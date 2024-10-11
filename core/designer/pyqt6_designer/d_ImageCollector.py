@@ -154,9 +154,9 @@ class Ui_ImageCollector(object):
         self.tabWidget.addTab(self.camera_tab, "")
         self.gallery_tab = QWidget()
         self.gallery_tab.setObjectName(u"gallery_tab")
-        self.vertices_reset_button = QPushButton(self.gallery_tab)
-        self.vertices_reset_button.setObjectName(u"vertices_reset_button")
-        self.vertices_reset_button.setGeometry(QRect(10, 50, 211, 31))
+        self.contour_reset_button = QPushButton(self.gallery_tab)
+        self.contour_reset_button.setObjectName(u"contour_reset_button")
+        self.contour_reset_button.setGeometry(QRect(10, 50, 211, 31))
         self.next_gallery_photo_button = QPushButton(self.gallery_tab)
         self.next_gallery_photo_button.setObjectName(u"next_gallery_photo_button")
         self.next_gallery_photo_button.setGeometry(QRect(120, 10, 101, 31))
@@ -202,7 +202,7 @@ class Ui_ImageCollector(object):
 
         self.retranslateUi(ImageCollector)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(ImageCollector)
@@ -226,7 +226,7 @@ class Ui_ImageCollector(object):
         self.label_13.setText(QCoreApplication.translate("ImageCollector", u"Dilate Iter", None))
         self.label_14.setText(QCoreApplication.translate("ImageCollector", u"Erode Iter", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.camera_tab), QCoreApplication.translate("ImageCollector", u"Camera", None))
-        self.vertices_reset_button.setText(QCoreApplication.translate("ImageCollector", u"Reset Coin Vertices", None))
+        self.contour_reset_button.setText(QCoreApplication.translate("ImageCollector", u"Reset Coin Contour", None))
         self.next_gallery_photo_button.setText(QCoreApplication.translate("ImageCollector", u"Next Photo", None))
         self.previous_gallery_photo_button.setText(QCoreApplication.translate("ImageCollector", u"Previous Photo", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.gallery_tab), QCoreApplication.translate("ImageCollector", u"Gallery", None))

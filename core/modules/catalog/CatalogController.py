@@ -8,9 +8,9 @@ from PySide6.QtGui import QPixmap, QImage
 from core.modules.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
-from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
+from core.qt_threading.messages.catalog_handler.Requests import PictureContourRequest, PictureContourUpdateRequest, \
     SavePictureRequest, PictureRequest, CatalogDictRequest, NewCoinRequest, RemoveCoinRequest
-from core.qt_threading.messages.catalog_handler.Responses import PictureVerticesResponse, PictureResponse, \
+from core.qt_threading.messages.catalog_handler.Responses import PictureContourResponse, PictureResponse, \
     CatalogDictResponse
 
 
@@ -25,6 +25,7 @@ class CoinCatalogHandler(QObject):
         project_root = 'D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer'
         self.catalog_path = os.path.join(project_root, "coin_catalog")
         self.coin_catalog_dict = {}
+        self.global_params: dict = {}
         self.current_picture: QPixmap | None = None
 
         self.is_running = False
@@ -55,7 +56,7 @@ class CoinCatalogHandler(QObject):
             except json.decoder.JSONDecodeError as ex:
                 print(ex)
                 return False
-            self.global_params = file_dict["params"]
+            self.global_params = file_dict.get("params", {})
             # print("Params: ", file_dict["params"])
 
             for year, countries in file_dict["coins"]["years"].items():
@@ -85,8 +86,8 @@ class CoinCatalogHandler(QObject):
                                 if not os.path.exists(file_path) or not os.path.isfile(file_path):
                                     continue
                                 coin.add_picture(picture_file=picture_file)
-                                vertices: list[list[float, float]] = attributes["vertices"]
-                                passed = coin.add_vertices_to_picture(picture_file=picture_file, vertices=vertices)
+                                contour: list[list[int, int]] = attributes["contour"]
+                                passed = coin.add_contour_to_picture(picture_file=picture_file, contour=contour)
                                 if not passed:
                                     return False
                         except KeyError as ex:
@@ -102,9 +103,9 @@ class CoinCatalogHandler(QObject):
         request_handlers = {
             CatalogDictRequest: self.handle_coin_catalog_request,
             PictureRequest: self.handle_image_with_vertices_request,
-            PictureVerticesUpdateRequest: self.handle_image_vertices_update_request,
+            PictureContourUpdateRequest: self.handle_image_vertices_update_request,
             SavePictureRequest: self.handle_save_picture_request,
-            PictureVerticesRequest: self.handle_image_vertices_request,
+            PictureContourRequest: self.handle_image_contour_request,
             NewCoinRequest: self.handle_new_coin_request,
             RemoveCoinRequest: self.handle_remove_coin_request
         }
@@ -120,33 +121,34 @@ class CoinCatalogHandler(QObject):
         self.qt_signals.catalog_handler_response.emit(response)
 
     def handle_image_with_vertices_request(self, request: PictureRequest):
-        picture, vertices = self.get_coin_photo_from_catalog(request.coin, request.picture)
+        picture, contour = self.get_coin_photo_from_catalog(request.coin, request.picture)
         response = PictureResponse(source=Modules.CATALOG_HANDLER,
                                    destination=request.source,
                                    picture=picture,
-                                   vertices=vertices)
+                                   contour=contour)
         self.qt_signals.catalog_handler_response.emit(response)
 
-    def handle_image_vertices_update_request(self, request: PictureVerticesUpdateRequest):
-        vertices = request.vertices
+    def handle_image_vertices_update_request(self, request: PictureContourUpdateRequest):
+        contour = request.contour
         coin = request.coin
         picture_file = request.picture_file
-        self.set_coin_photo_vertices(coin=coin, picture_file=picture_file, vertices_coordinates=vertices)
+        self.set_coin_photo_contour(coin=coin, picture_file=picture_file, contour_pixels=contour)
         self.write_catalog()
 
     def handle_save_picture_request(self, request: SavePictureRequest):
         self.add_coin_picture(image=request.image,
-                              coin=request.coin)
+                              coin=request.coin,
+                              contour_pixels=request.contour)
 
-    def handle_image_vertices_request(self, request: PictureVerticesRequest):
+    def handle_image_contour_request(self, request: PictureContourRequest):
         coin_year: str = request.coin.year
         coin_country: str = request.coin.country
         coin_name: str = request.coin.name
 
         picture_filename: str = request.picture_filename
-        vertices = self.coin_catalog_dict[coin_year][coin_country][coin_name].pictures[picture_filename]["vertices"]
+        contour = self.coin_catalog_dict[coin_year][coin_country][coin_name].pictures[picture_filename]["contour"]
 
-        response = PictureVerticesResponse(vertices=vertices,
+        response = PictureContourResponse(contour=contour,
                                            source=Modules.CATALOG_HANDLER,
                                            destination=request.source)
 
@@ -192,7 +194,7 @@ class CoinCatalogHandler(QObject):
         if len(self.coin_catalog_dict[coin.year].keys()) == 0:
             self.coin_catalog_dict.pop(coin.year)
 
-    def add_coin_picture(self, image: QImage, coin: Coin):
+    def add_coin_picture(self, image: QImage, coin: Coin, contour_pixels: list[tuple[int, int]]):
         pixmap = image.pixmap()
         catalog_coin = self.coin_catalog_dict[coin.year][coin.country][coin.name]
         coin_dir_path: str = os.path.join(self.catalog_path, coin.year, coin.country, coin.name)
@@ -206,6 +208,7 @@ class CoinCatalogHandler(QObject):
         if saved:
             print(f"image saved to {absolute_path}")
             catalog_coin.add_picture(f"{picture_file}")
+            # catalog_coin.add_picture_contour(picture_file=picture_file, contour=contour_pixels)
             self.write_catalog()
             response = CatalogDictResponse(data=self.coin_catalog_dict)
             self.qt_signals.catalog_handler_response.emit(response)
@@ -221,14 +224,14 @@ class CoinCatalogHandler(QObject):
     def get_coin_photo_from_catalog(self, coin: Coin, picture: str) -> tuple[QPixmap, list[tuple[float, float]]]:
         print(f"[CoinCatalogHandler]: get_coin_photo_from_catalog")
         coin_picture_files = self.get_coin_dir_picture_files(coin)
-        vertices: list[tuple[int, int]] = []
+        contour: list[tuple[int, int]] = []
         coin_dir_path: str = os.path.join(self.catalog_path,
                                           coin.year,
                                           coin.country,
                                           coin.name)
         if picture in coin.pictures:
             self.current_picture = QPixmap(os.path.join(coin_dir_path, picture))
-            vertices = coin.pictures[picture]["vertices"]
+            contour = coin.pictures[picture]["contour"]
             self.current_picture = self.current_picture
 
             # Check if the image is loaded successfully
@@ -238,15 +241,15 @@ class CoinCatalogHandler(QObject):
                 print(f"Image loaded successfully from {coin_picture_files[0]}")
         else:
             self.current_picture = QPixmap("data\\debug_img.png")
-        return self.current_picture, vertices
+        return self.current_picture, contour
 
-    def set_coin_photo_vertices(self, coin: Coin, picture_file: str, vertices_coordinates: list[tuple[int, int]]):
+    def set_coin_photo_contour(self, coin: Coin, picture_file: str, contour_pixels: list[tuple[int, int]]):
         coin_dir_path: str = os.path.join(self.catalog_path,
                                           coin.year,
                                           coin.country,
                                           coin.name)
         png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
-        coin.pictures[picture_file]["vertices"] = vertices_coordinates
+        coin.pictures[picture_file]["contour"] = contour_pixels
         self.coin_catalog_dict[coin.year][coin.country][coin.name] = coin
         self.write_catalog()
 

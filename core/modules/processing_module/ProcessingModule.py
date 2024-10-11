@@ -61,14 +61,14 @@ class ProcessingModule(QObject):
         params: dict = request.param_dict
 
         processed = self.process(image, params)
-        contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        print(contours)
+        contour, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        # print(contour)
 
-        img_no_bg = self.remove_background(image, contours)
+        img_no_bg = self.remove_background(image, contour)
         qimage_result = self.cv2_to_qimage(img_no_bg)
 
         self.qt_signals.processing_module_request.emit(
-            ProcessedImageResponse(image=qimage_result, mask=contours, source=Modules.PROCESSING_MODULE, destination=request.source))
+            ProcessedImageResponse(image=request.picture, contour=contour, source=Modules.PROCESSING_MODULE, destination=request.source))
 
     def qimage_to_cv2(self, qimage):
         width = qimage.width()

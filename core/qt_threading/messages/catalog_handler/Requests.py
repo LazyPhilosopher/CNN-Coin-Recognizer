@@ -11,7 +11,7 @@ class CatalogDictRequest(MessageBase):
         self.destination = destination
 
 
-class PictureVerticesRequest(MessageBase):
+class PictureContourRequest(MessageBase):
     def __init__(self, coin: Coin, picture_filename: str, source=None, destination=None):
         super().__init__()
         self.source = source
@@ -21,23 +21,24 @@ class PictureVerticesRequest(MessageBase):
 
 
 class SavePictureRequest(MessageBase):
-    def __init__(self,  coin: Coin, image: QImage, source=None, destination=None):
+    def __init__(self,  coin: Coin, image: QImage, contour: list[tuple[int, int]], source=None, destination=None):
         super().__init__()
         self.coin = coin
         self.image = image
+        self.contour = contour
         self.source = source
         self.destination = destination
 
 
-class PictureVerticesUpdateRequest(MessageBase):
+class PictureContourUpdateRequest(MessageBase):
     def __init__(self,
-                 vertices: list[tuple[int, int]],
+                 contour: list[tuple[int, int]],
                  coin: Coin,
                  picture_file: str,
                  source=None,
                  destination=None):
         super().__init__()
-        self.vertices = vertices
+        self.contour = contour
         self.coin = coin
         self.picture_file = picture_file
         self.source = source

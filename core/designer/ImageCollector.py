@@ -8,7 +8,7 @@ from core.modules.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, \
-    PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest, NewCoinRequest, RemoveCoinRequest
+    PictureRequest, SavePictureRequest, PictureContourUpdateRequest, NewCoinRequest, RemoveCoinRequest
 from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, \
     PictureResponse
 from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundDictionary
@@ -46,8 +46,8 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.qt_signals.frame_available.connect(self.handle_request)
         self.next_gallery_photo_button.clicked.connect(self.next_picture_button_callback)
         self.previous_gallery_photo_button.clicked.connect(self.previous_picture_button_callback)
-        self.vertices_reset_button.clicked.connect(self.reset_coin_vertices)
-        self.overlay.mouse_released.connect(self.update_edges)
+        self.contour_reset_button.clicked.connect(self.reset_coin_contour)
+        # self.overlay.mouse_released.connect(self.update_edges)
         self.save_photo_button.clicked.connect(self.save_photo)
         self.new_coin_button.clicked.connect(self.new_coin_routine)
         self.remove_coin_button.clicked.connect(self.remove_coin_routine)
@@ -75,11 +75,13 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         self.catalog = request.catalog
         self.reset_dropboxes()
-        try:
+        self.pick_coin_from_dropboxes(self.active_coin)
+        self.update_active_coin()
+        # try:
             # self.update_active_coin()
-            self.pick_coin_from_dropboxes(self.active_coin)
-        except (AttributeError, KeyError):
-            self.update_active_coin()
+            # self.pick_coin_from_dropboxes(self.active_coin)
+        # except (AttributeError, KeyError):
+
 
     def handle_camera_list_response(self, request: CameraListResponse):
         self.camera_swich_combo_box.addItems(request.cameras)
@@ -88,20 +90,19 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         current_tab_index = self.tabWidget.currentIndex()
         if self.tabWidget.tabText(current_tab_index) == "Gallery":
             picture = request.picture
-            vertices = request.vertices
+            contour = request.contour
             self.video_frame.set_image(picture)
             width = self.video_frame.width()
             height = self.video_frame.height()
-            crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
+            contour_pixels = [QPoint(x * width, y * height) for (x, y) in contour]
 
-            self.overlay.crosses = crosses
+            self.overlay.crosses = contour_pixels
             self.overlay.show()
 
     def handle_frame_available_request(self, request: FrameAvailable):
         current_tab_index = self.tabWidget.currentIndex()
         if self.tabWidget.tabText(current_tab_index) == "Camera":
 
-            out_image = request.frame
             if self.auto_mark_edges_checkbox.isChecked():
                 param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
                 message = RemoveBackgroundRequest(
@@ -115,9 +116,10 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                     request_message=message,
                     response_signal=self.qt_signals.processing_module_request,
                     response_message_type=ProcessedImageResponse)
-                out_image = response.image
-
-            self.video_frame.set_image(out_image)
+                # self.video_frame.set_contour_pixels(response.contour)
+                self.video_frame.set_image_with_contour(request.frame, response.contour)
+            else:
+                self.video_frame.set_image(request.frame)
 
     def tab_bar_click_routine(self):
         current_tab_index = self.tabWidget.currentIndex()
@@ -196,7 +198,8 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
     def save_photo(self):
         request = SavePictureRequest(image=self.video_frame.image_label,
-                                     coin=self.active_coin)
+                                     coin=self.active_coin,
+                                     contour=self.video_frame.contour_pixels)
         self.qt_signals.catalog_handler_request.emit(request)
 
     def new_coin_routine(self):
@@ -223,16 +226,16 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         request = RemoveCoinRequest(self.active_coin)
         self.qt_signals.catalog_handler_request.emit(request)
 
-    def update_edges(self, crosses: list[QPoint]):
-        width = self.video_frame.width()
-        height = self.video_frame.height()
-        vertices = [(point.x() / width, point.y() / height) for point in crosses]
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
-                                               destination=Modules.CATALOG_HANDLER,
-                                               coin=self.active_coin,
-                                               vertices=vertices,
-                                               picture_file=self.current_picture_name)
-        self.qt_signals.catalog_handler_request.emit(request)
+    # def update_edges(self, crosses: list[QPoint]):
+    #     width = self.video_frame.width()
+    #     height = self.video_frame.height()
+    #     contour_pixels = [(point.x() / width, point.y() / height) for point in crosses]
+    #     request = PictureContourUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+    #                                            destination=Modules.CATALOG_HANDLER,
+    #                                            coin=self.active_coin,
+    #                                            contour=contour_pixels,
+    #                                            picture_file=self.current_picture_name)
+    #     self.qt_signals.catalog_handler_request.emit(request)
 
     def year_dropbox_update_callback(self):
         self.set_country_dropbox_items(year=self.coin_catalog_year_dropbox.currentText())
@@ -273,12 +276,12 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         return True
 
-    def reset_coin_vertices(self):
-        vertices = []
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+    def reset_coin_contour(self):
+        contour_pixels = []
+        request = PictureContourUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
                                                destination=Modules.CATALOG_HANDLER,
                                                coin=self.active_coin,
-                                               vertices=vertices,
+                                               contour=contour_pixels,
                                                picture_file=self.current_picture_name)
         self.qt_signals.catalog_handler_request.emit(request)
         self.request_picture()

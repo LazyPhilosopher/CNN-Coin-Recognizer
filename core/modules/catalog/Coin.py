@@ -21,24 +21,28 @@ class Coin:
         return True
 
     def add_picture(self, picture_file: str) -> bool:
-        self.pictures[picture_file] = {"vertices": []}
+        self.pictures[picture_file] = {"contour": []}
+        return True
+
+    def add_picture_contour(self, picture_file: str, contour: list[tuple[int, int]]) -> bool:
+        self.pictures[picture_file]["contour"] = contour
         return True
 
     def add_coin_param(self, param_name: str, value: int):
         self.coin_params[param_name] = value
         return True
 
-    def add_vertices_to_picture(self, picture_file: str, vertices: list[list[int, int]]) -> bool:
-        vertices_list: list[tuple[float, float]] = []
+    def add_contour_to_picture(self, picture_file: str, contour: list[list[int, int]]) -> bool:
+        contour_pixel_list: list[tuple[float, float]] = []
 
-        for vertex in vertices:
-            x: float = vertex[0]
-            y: float = vertex[1]
-            if not isinstance(x, float) or not isinstance(y, float):
+        for pixel in contour:
+            x: int = pixel[0]
+            y: int = pixel[1]
+            if not isinstance(x, int) or not isinstance(y, int):
                 return False
-            vertices_list.append((x, y))
+            contour_pixel_list.append((x, y))
 
-        self.pictures[picture_file]["vertices"] += vertices_list
+        self.pictures[picture_file]["contour"] += contour_pixel_list
         return True
 
     def to_dict(self):
