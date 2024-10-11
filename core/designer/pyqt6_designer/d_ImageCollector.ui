@@ -106,7 +106,7 @@
      </widget>
      <widget class="QCheckBox" name="auto_mark_edges_checkbox">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="geometry">
        <rect>
@@ -120,7 +120,7 @@
        <string>auto-mark coin edges</string>
       </property>
       <property name="checkable">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
      <widget class="QPushButton" name="new_coin_button">

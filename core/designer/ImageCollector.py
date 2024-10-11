@@ -101,20 +101,23 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         current_tab_index = self.tabWidget.currentIndex()
         if self.tabWidget.tabText(current_tab_index) == "Camera":
 
-            param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
-            message = RemoveBackgroundRequest(
-                source=Modules.CATALOG_HANDLER,
-                destination=Modules.PROCESSING_MODULE,
-                picture=request.frame,
-                param_dict=param_dict)
+            out_image = request.frame
+            if self.auto_mark_edges_checkbox.isChecked():
+                param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
+                message = RemoveBackgroundRequest(
+                    source=Modules.CATALOG_HANDLER,
+                    destination=Modules.PROCESSING_MODULE,
+                    picture=request.frame,
+                    param_dict=param_dict)
 
-            response: ProcessedImageResponse = blocking_response_message_await(
-                request_signal=self.qt_signals.processing_module_request,
-                request_message=message,
-                response_signal=self.qt_signals.processing_module_request,
-                response_message_type=ProcessedImageResponse)
+                response: ProcessedImageResponse = blocking_response_message_await(
+                    request_signal=self.qt_signals.processing_module_request,
+                    request_message=message,
+                    response_signal=self.qt_signals.processing_module_request,
+                    response_message_type=ProcessedImageResponse)
+                out_image = response.image
 
-            self.video_frame.set_image(response.image)
+            self.video_frame.set_image(out_image)
 
     def tab_bar_click_routine(self):
         current_tab_index = self.tabWidget.currentIndex()

@@ -513,6 +513,12 @@
                             },
                             "de96b89b-cac2-407d-a84f-adf4bd49a3c3.png": {
                                 "vertices": []
+                            },
+                            "177d62f3-4c49-47d7-93b7-b96e8a89d6cd.png": {
+                                "vertices": []
+                            },
+                            "8116cfa5-fe3c-4411-bb0b-f258a6685a14.png": {
+                                "vertices": []
                             }
                         }
                     }
@@ -663,6 +669,37 @@
                                 ]
                             },
                             "f8a3188f-a9a9-4544-8f83-44d20f573669.png": {
+                                "vertices": []
+                            },
+                            "a68e60e4-779f-4ae6-8b70-04f3bddb929f.png": {
+                                "vertices": []
+                            },
+                            "e851a380-a52b-45bd-a295-905b3e16b62d.png": {
+                                "vertices": []
+                            },
+                            "c7f2cf1b-77d3-4467-98a3-fdc944ae008b.png": {
+                                "vertices": []
+                            },
+                            "91cf9ac3-0d4c-4308-a472-c14c40e7056e.png": {
+                                "vertices": []
+                            },
+                            "ecca5b0e-eb8f-4f33-bd6d-8c755a8fc20e.png": {
+                                "vertices": []
+                            },
+                            "766d2cf1-9ae8-4e3c-b825-d863987c722f.png": {
+                                "vertices": []
+                            }
+                        }
+                    }
+                }
+            },
+            "2020": {
+                "Czech Republic": {
+                    "20 Korun": {
+                        "training_params": {},
+                        "coin_params": {},
+                        "pictures": {
+                            "2676786c-d013-43fa-ab57-a1f63744719c.png": {
                                 "vertices": []
                             }
                         }
