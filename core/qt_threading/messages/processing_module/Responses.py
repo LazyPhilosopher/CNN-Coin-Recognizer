@@ -12,10 +12,10 @@ class GrayscalePictureResponse(MessageBase):
 
 
 class ProcessedImageResponse(MessageBase):
-    def __init__(self,  image: QImage, mask, source=None, destination=None):
+    def __init__(self,  image: QImage, contour: list[tuple[int, int]], source=None, destination=None):
         super().__init__()
         self.image = image
-        self.mask = mask
+        self.contour = contour
         self.source = source
         self.destination = destination
 

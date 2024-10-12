@@ -6,7 +6,7 @@ from core.modules.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages import MessageBase
 from core.qt_threading.messages.MessageBase import Modules
-from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, PictureVerticesUpdateRequest, \
+from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, PictureContourUpdateRequest, \
     PictureRequest
 from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, PictureResponse
 from core.designer.pyqt6_designer.d_gallery_window import Ui_GalleryWindow
@@ -42,7 +42,7 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
         self.overlay = DraggableCrossesOverlay(self.image_label)
         self.overlay.setGeometry(self.image_label.geometry())
         self.overlay.mouse_released.connect(self.update_edges)
-        self.reset_coin_vertices_button.clicked.connect(self.reset_coin_vertices)
+        self.reset_coin_contour_button.clicked.connect(self.reset_coin_contour)
 
         self.image_idx = 0
 
@@ -75,11 +75,11 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
 
     def handle_picture_response(self, request: PictureResponse):
         picture = request.picture
-        vertices = request.vertices
+        contour = request.contour
         self.image_label.setPixmap(picture)
         width = self.image_label.width()
         height = self.image_label.height()
-        crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
+        crosses = [QPoint(x * width, y * height) for (x, y) in contour]
 
         # self.overlay.init_image_with_vertices(self.catalog_handler.active_coin, self.current_coin_photo_id)
         self.overlay.crosses = crosses
@@ -143,22 +143,22 @@ class ImageGalleryWindow(QMainWindow, Ui_GalleryWindow):
     def update_edges(self, crosses: list[QPoint]):
         width = self.image_label.width()
         height = self.image_label.height()
-        vertices = [(point.x() / width, point.y() / height) for point in crosses]
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+        contour = [(point.x() / width, point.y() / height) for point in crosses]
+        request = PictureContourUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
                                                destination=Modules.CATALOG_HANDLER,
                                                coin=self.active_coin,
-                                               vertices=vertices,
+                                               contour=contour,
                                                picture_file=self.current_picture_name)
         print(self.active_coin)
         self.qt_signals.catalog_handler_request.emit(request)
         # print(f"UPDATE EDGES {self.current_picture_name}")
 
-    def reset_coin_vertices(self):
-        vertices = []
-        request = PictureVerticesUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
+    def reset_coin_contour(self):
+        contour_pixels = []
+        request = PictureContourUpdateRequest(source=Modules.DRAGGABLE_CROSS_OVERLAY,
                                                destination=Modules.CATALOG_HANDLER,
                                                coin=self.active_coin,
-                                               vertices=vertices,
+                                               contour=contour_pixels,
                                                picture_file=self.current_picture_name)
         self.qt_signals.catalog_handler_request.emit(request)
         self.request_picture()
