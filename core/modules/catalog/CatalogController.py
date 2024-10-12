@@ -9,7 +9,8 @@ from core.modules.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
-    SavePictureRequest, PictureRequest, CatalogDictRequest, NewCoinRequest, RemoveCoinRequest
+    SavePictureRequest, SaveCroppedPictureRequest, PictureRequest, CatalogDictRequest, NewCoinRequest, \
+    RemoveCoinRequest, DeleteCroppedPicture
 from core.qt_threading.messages.catalog_handler.Responses import PictureVerticesResponse, PictureResponse, \
     CatalogDictResponse
 
@@ -104,7 +105,9 @@ class CoinCatalogHandler(QObject):
             PictureRequest: self.handle_image_with_vertices_request,
             PictureVerticesUpdateRequest: self.handle_image_vertices_update_request,
             SavePictureRequest: self.handle_save_picture_request,
-            PictureVerticesRequest: self.handle_image_vertices_request,
+            SaveCroppedPictureRequest: self.handle_save_cropped_picture_request,
+            DeleteCroppedPicture: self.handle_delete_cropped_picture_request,
+            # PictureVerticesRequest: self.handle_image_vertices_request,
             NewCoinRequest: self.handle_new_coin_request,
             RemoveCoinRequest: self.handle_remove_coin_request
         }
@@ -120,11 +123,11 @@ class CoinCatalogHandler(QObject):
         self.qt_signals.catalog_handler_response.emit(response)
 
     def handle_image_with_vertices_request(self, request: PictureRequest):
-        picture, vertices = self.get_coin_photo_from_catalog(request.coin, request.picture)
+        _, pic_with_background, pic_no_background = self.get_coin_photo_from_catalog(request.coin, request.picture)
         response = PictureResponse(source=Modules.CATALOG_HANDLER,
                                    destination=request.source,
-                                   picture=picture,
-                                   vertices=vertices)
+                                   pic_with_background=pic_with_background,
+                                   pic_no_background=pic_no_background)
         self.qt_signals.catalog_handler_response.emit(response)
 
     def handle_image_vertices_update_request(self, request: PictureVerticesUpdateRequest):
@@ -135,22 +138,32 @@ class CoinCatalogHandler(QObject):
         self.write_catalog()
 
     def handle_save_picture_request(self, request: SavePictureRequest):
-        self.add_coin_picture(image=request.image,
-                              coin=request.coin)
+        picture_filename = self.add_coin_picture(image=request.image_with_background, coin=request.coin)
+        if request.cropped_image is not None:
+            self.add_cropped_coin_picture(image=request.cropped_image, picture_filename=picture_filename, coin=request.coin)
 
-    def handle_image_vertices_request(self, request: PictureVerticesRequest):
-        coin_year: str = request.coin.year
-        coin_country: str = request.coin.country
-        coin_name: str = request.coin.name
+    def handle_save_cropped_picture_request(self, request: SaveCroppedPictureRequest):
+        self.add_cropped_coin_picture(image=request.image_without_background,
+                                      picture_filename=request.picture_name,
+                                      coin=request.coin)
 
-        picture_filename: str = request.picture_filename
-        vertices = self.coin_catalog_dict[coin_year][coin_country][coin_name].pictures[picture_filename]["vertices"]
+    def handle_delete_cropped_picture_request(self, request: DeleteCroppedPicture):
+        self.add_cropped_coin_picture(picture_filename=request.picture_file,
+                                      coin=request.coin)
 
-        response = PictureVerticesResponse(vertices=vertices,
-                                           source=Modules.CATALOG_HANDLER,
-                                           destination=request.source)
-
-        self.qt_signals.catalog_handler_request.emit(response)
+    # def handle_image_vertices_request(self, request: PictureVerticesRequest):
+    #     coin_year: str = request.coin.year
+    #     coin_country: str = request.coin.country
+    #     coin_name: str = request.coin.name
+    #
+    #     picture_filename: str = request.picture_filename
+    #     # vertices = self.coin_catalog_dict[coin_year][coin_country][coin_name].pictures[picture_filename]["vertices"]
+    #
+    #     response = PictureVerticesResponse(vertices=vertices,
+    #                                        source=Modules.CATALOG_HANDLER,
+    #                                        destination=request.source)
+    #
+    #     self.qt_signals.catalog_handler_request.emit(response)
 
     def handle_new_coin_request(self, request: NewCoinRequest):
         new_coin = Coin(name=request.coin_name, year=request.coin_year, country=request.coin_country)
@@ -192,8 +205,8 @@ class CoinCatalogHandler(QObject):
         if len(self.coin_catalog_dict[coin.year].keys()) == 0:
             self.coin_catalog_dict.pop(coin.year)
 
-    def add_coin_picture(self, image: QImage, coin: Coin):
-        pixmap = image.pixmap()
+    def add_coin_picture(self, image: QImage, coin: Coin) -> str:
+        pixmap = QPixmap.fromImage(image)
         catalog_coin = self.coin_catalog_dict[coin.year][coin.country][coin.name]
         coin_dir_path: str = os.path.join(self.catalog_path, coin.year, coin.country, coin.name)
         picture_file: str = str(uuid.uuid4()) + ".png"
@@ -209,6 +222,26 @@ class CoinCatalogHandler(QObject):
             self.write_catalog()
             response = CatalogDictResponse(data=self.coin_catalog_dict)
             self.qt_signals.catalog_handler_response.emit(response)
+        return picture_file
+
+    def delete_cropped_coin_picture(self, picture_filename: str, coin: Coin):
+        catalog_coin = self.coin_catalog_dict[coin.year][coin.country][coin.name]
+        coin_dir_path: str = os.path.join(self.catalog_path, "cropped", catalog_coin.year, catalog_coin.country, catalog_coin.name)
+        absolute_path: str = os.path.join(coin_dir_path, picture_filename)
+
+        os.remove(absolute_path)
+
+    def add_cropped_coin_picture(self, image: QImage, picture_filename: str, coin: Coin):
+        pixmap = QPixmap.fromImage(image)
+        catalog_coin = self.coin_catalog_dict[coin.year][coin.country][coin.name]
+        coin_dir_path: str = os.path.join(self.catalog_path, "cropped", catalog_coin.year, catalog_coin.country, catalog_coin.name)
+        absolute_path: str = os.path.join(coin_dir_path, picture_filename)
+
+        if not os.path.exists(coin_dir_path):
+            os.makedirs(coin_dir_path)
+
+        saved = pixmap.save(absolute_path)
+        print(f"add_cropped_coin_picture: {absolute_path}: {saved}")
 
     def get_coin_dir_picture_files(self, coin: Coin) -> list[str]:
         coin_dir_path: str = os.path.join(self.catalog_path,
@@ -218,27 +251,36 @@ class CoinCatalogHandler(QObject):
         png_file_list: list[str] = [file for file in os.listdir(coin_dir_path) if file.endswith(".png")]
         return [file for file in coin.pictures if file in png_file_list]
 
-    def get_coin_photo_from_catalog(self, coin: Coin, picture: str) -> tuple[QPixmap, list[tuple[float, float]]]:
+    def get_coin_photo_from_catalog(self, coin: Coin, picture: str) -> dict[str, bool | QImage]:
         print(f"[CoinCatalogHandler]: get_coin_photo_from_catalog")
+        loaded: bool = False
+        pic_with_background: QImage | None = None
+        pic_no_background: QImage | None = None
         coin_picture_files = self.get_coin_dir_picture_files(coin)
-        vertices: list[tuple[int, int]] = []
-        coin_dir_path: str = os.path.join(self.catalog_path,
-                                          coin.year,
-                                          coin.country,
-                                          coin.name)
+        # vertices: list[tuple[int, int]] = []
+
+        cropped_dir_path: str = os.path.join(self.catalog_path, "cropped", coin.coin_dir_path())
+        coin_dir_path: str = os.path.join(self.catalog_path, coin.coin_dir_path())
+
         if picture in coin.pictures:
-            self.current_picture = QPixmap(os.path.join(coin_dir_path, picture))
-            vertices = coin.pictures[picture]["vertices"]
-            self.current_picture = self.current_picture
+            pic_with_background = QImage(os.path.join(coin_dir_path, picture))
+            pic_with_background = pic_with_background.convertToFormat(QImage.Format_RGBA8888)
+            if os.path.isfile(os.path.join(cropped_dir_path, picture)):
+                pic_no_background = QImage(os.path.join(cropped_dir_path, picture))
+                pic_no_background = pic_no_background.convertToFormat(QImage.Format_RGBA8888)
+
+            self.current_picture = QImage(os.path.join(coin_dir_path, picture))
+            # vertices = coin.pictures[picture]["vertices"]
 
             # Check if the image is loaded successfully
-            if self.current_picture.isNull():
+            if pic_with_background.isNull():
                 print(f"Failed to load image from {picture}")
             else:
                 print(f"Image loaded successfully from {coin_picture_files[0]}")
+                loaded = True
         else:
-            self.current_picture = QPixmap("data\\debug_img.png")
-        return self.current_picture, vertices
+            self.current_picture = QImage("data\\debug_img.png",)
+        return loaded, pic_with_background, pic_no_background
 
     def set_coin_photo_vertices(self, coin: Coin, picture_file: str, vertices_coordinates: list[tuple[int, int]]):
         coin_dir_path: str = os.path.join(self.catalog_path,

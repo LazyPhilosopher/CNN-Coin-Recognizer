@@ -1,3 +1,4 @@
+from os import path
 
 
 class Coin:
@@ -47,3 +48,6 @@ class Coin:
             "coin_params": self.coin_params,
             "pictures": self.pictures
         }
+
+    def coin_dir_path(self) -> str:
+        return path.join(self.year, self.country, self.name)

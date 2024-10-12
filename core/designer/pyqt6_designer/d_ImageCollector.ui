@@ -308,7 +308,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Canny Thr 2</string>
+       <string>Canny Thr 1</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_8">
@@ -426,6 +426,9 @@
       <property name="minimum">
        <number>4</number>
       </property>
+      <property name="maximum">
+       <number>50</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -461,19 +464,6 @@
      <attribute name="title">
       <string>Gallery</string>
      </attribute>
-     <widget class="QPushButton" name="vertices_reset_button">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>50</y>
-        <width>211</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Reset Coin Vertices</string>
-      </property>
-     </widget>
      <widget class="QPushButton" name="next_gallery_photo_button">
       <property name="geometry">
        <rect>
@@ -499,6 +489,311 @@
       <property name="text">
        <string>Previous Photo</string>
       </property>
+     </widget>
+     <widget class="Line" name="line">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>60</y>
+        <width>201</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="redraw_coin_contour_checkbox">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>50</y>
+        <width>201</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Redraw coin contour</string>
+      </property>
+     </widget>
+     <widget class="QGroupBox" name="contour_correction_container">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>70</y>
+        <width>201</width>
+        <height>301</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string/>
+      </property>
+      <widget class="QPushButton" name="save_cropped_image_button">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>270</y>
+         <width>201</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Save Changes</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="automatic_contour_detextion_checkbox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>0</y>
+         <width>181</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Automatic contour detection</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="manual_contour_reset_button">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>240</y>
+         <width>201</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Reset Manual Contour</string>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_dilate_2_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>90</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>2</number>
+       </property>
+       <property name="maximum">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_erode_1_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>120</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>13</number>
+       </property>
+       <property name="maximum">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_erode_2_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>150</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>7</number>
+       </property>
+       <property name="maximum">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_dilate_iter_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>180</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>11</number>
+       </property>
+       <property name="maximum">
+        <number>40</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_erode_iter_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>210</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>4</number>
+       </property>
+       <property name="maximum">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_dilate_1_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>60</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>4</number>
+       </property>
+       <property name="maximum">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QSlider" name="gallery_blur_kernel_slider">
+       <property name="geometry">
+        <rect>
+         <x>69</x>
+         <y>30</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>3</number>
+       </property>
+       <property name="maximum">
+        <number>50</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_15">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>41</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Blur k.</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_16">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>51</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Dilate K.1</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_17">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>90</y>
+         <width>51</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Dilate K.2</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_18">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>120</y>
+         <width>51</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Erode K.1</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_19">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>150</y>
+         <width>51</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Erode K.2</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_20">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>180</y>
+         <width>51</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Dilate I.</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_21">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>210</y>
+         <width>51</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Erode I.</string>
+       </property>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="coin_tab">

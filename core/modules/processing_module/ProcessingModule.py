@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, QThread
+from PySide6.QtCore import QObject, QThread, QPoint
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
@@ -11,7 +11,7 @@ import numpy as np
 
 from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundDictionary
 from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest, \
-    RemoveBackgroundRequest
+    RemoveBackgroundRequest, RemoveBackgroundVerticesRequest
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
 
 
@@ -39,7 +39,8 @@ class ProcessingModule(QObject):
         request_handlers = {
             GrayscalePictureRequest: self.handle_grayscale_picture,
             DoNothingRequest: self.handle_do_nothing,
-            RemoveBackgroundRequest: self.handle_remove_background
+            RemoveBackgroundRequest: self.handle_remove_background,
+            RemoveBackgroundVerticesRequest: self.handle_remove_background_vertices
         }
 
         handler = request_handlers.get(type(request), None)
@@ -62,7 +63,7 @@ class ProcessingModule(QObject):
 
         processed = self.process(image, params)
         contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        print(contours)
+        # print(' '.join(str(*array[0]) for array in contours)+"\n")
 
         img_no_bg = self.remove_background(image, contours)
         qimage_result = self.cv2_to_qimage(img_no_bg)
@@ -70,20 +71,70 @@ class ProcessingModule(QObject):
         self.qt_signals.processing_module_request.emit(
             ProcessedImageResponse(image=qimage_result, mask=contours, source=Modules.PROCESSING_MODULE, destination=request.source))
 
+    def handle_remove_background_vertices(self, request: RemoveBackgroundVerticesRequest):
+        # Convert QImage to OpenCV image
+        image = self.qimage_to_cv2(request.picture)
+
+        # Get the list of QPoint objects
+        vertices: list[QPoint] = request.qpoint_vertices
+
+        # Convert list of QPoint to a NumPy array
+        points = np.array([[point.x(), point.y()] for point in vertices], dtype=np.int32)
+
+        # Create a mask with the same size as the original image, filled with zeros (black)
+        mask = np.zeros(image.shape[:2], dtype=np.uint8)
+
+        # Fill the mask with the polygon defined by the vertices
+        cv2.fillPoly(mask, [points], 255)  # The polygon is filled with white (255)
+
+        # Convert the image to BGRA format (4 channels) to include transparency
+        img_with_alpha = cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
+
+        # Set pixels outside the polygon to transparent (0 alpha)
+        img_with_alpha[mask == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
+
+        # Convert the resulting image back to QImage
+        qimage_result = self.cv2_to_qimage(img_with_alpha)
+
+        # Emit the processed result
+        self.qt_signals.processing_module_request.emit(
+            ProcessedImageResponse(image=qimage_result, mask=points, source=Modules.PROCESSING_MODULE,
+                                   destination=request.source)
+        )
+
     def qimage_to_cv2(self, qimage):
         width = qimage.width()
         height = qimage.height()
 
-        # Get the pointer to the data and reshape directly
-        ptr = qimage.bits()
-        arr = np.array(ptr).reshape((height, width, 3))  # Assuming 4 channels (RGBA)
+        # Check the format of the QImage to determine if it has an alpha channel
+        if qimage.format() == QImage.Format_RGBA8888:
+            channels = 4  # RGBA
+        else:
+            channels = 3  # RGB
 
-        return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
+        # Get the pointer to the data and reshape it based on the number of channels
+        ptr = qimage.bits()
+        arr = np.array(ptr).reshape((height, width, channels))
+
+        if channels == 4:
+            return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGRA)  # Keep the alpha channel
+        else:
+            return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
 
     def cv2_to_qimage(self, cv_img):
+        # Ensure that the image is contiguous in memory
+        cv_img = np.ascontiguousarray(cv_img)
+
+        # Extract height, width, and number of channels from the image
         height, width, channels = cv_img.shape
         bytes_per_line = channels * width
-        qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_BGR888)
+
+        # Choose the appropriate QImage format based on the number of channels
+        if channels == 4:  # BGRA to RGBA
+            qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
+        else:
+            qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGB888)
+
         return qimage
 
     def convert_pixmap_to_grayscale(self, pixmap: QPixmap):
@@ -126,22 +177,21 @@ class ProcessingModule(QObject):
         img_erode = cv2.erode(img_dilate, np.ones((params["Erode Kernel1"], params["Erode Kernel1"])), iterations=params["Erode Iterations"])
         return img_erode
 
-    def remove_background(self, img: QImage, contours):
-        # Create a mask for the background
+    def remove_background(self, img, contours):
+        # Create a mask for the background (single channel)
         mask = np.zeros_like(img[:, :, 0])
 
         if contours:
             cnt = max(contours, key=cv2.contourArea)  # Find the largest contour
             cv2.drawContours(mask, [cv2.convexHull(cnt)], -1, 255, thickness=cv2.FILLED)  # Fill the contour
 
-        # Create a 3-channel version of the mask
-        mask_rgb = cv2.merge([mask, mask, mask])
+        # Convert the mask to a 4-channel version (for RGBA)
+        mask_alpha = cv2.merge([mask, mask, mask, mask])
 
-        # Apply the mask to the original image
-        result = cv2.bitwise_and(img, mask_rgb)
+        # Create a transparent image
+        img_with_alpha = cv2.cvtColor(img, cv2.COLOR_RGB2BGRA)
 
-        # Set background to black or transparent (optional if saving as PNG with alpha)
-        background = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-        background[background == 255] = 0
+        # Set background pixels to transparent where the mask is zero
+        img_with_alpha[mask_alpha[:, :, 3] == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
 
-        return result
+        return img_with_alpha

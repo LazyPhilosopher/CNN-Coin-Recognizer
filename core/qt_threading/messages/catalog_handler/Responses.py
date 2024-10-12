@@ -1,3 +1,5 @@
+from PySide6.QtGui import QImage
+
 from core.qt_threading.messages.MessageBase import MessageBase
 
 
@@ -10,10 +12,10 @@ class PictureVerticesResponse(MessageBase):
 
 
 class PictureResponse(MessageBase):
-    def __init__(self,  picture, vertices, source=None, destination=None):
+    def __init__(self,  pic_with_background: QImage, pic_no_background: QImage, source=None, destination=None):
         super().__init__()
-        self.picture = picture
-        self.vertices = vertices
+        self.pic_with_background = pic_with_background
+        self.pic_no_background = pic_no_background
         self.source = source
         self.destination = destination
 

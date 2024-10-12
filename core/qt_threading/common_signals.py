@@ -1,6 +1,6 @@
 from typing import Type
 
-from PySide6.QtCore import QObject, Signal, QEventLoop
+from PySide6.QtCore import QObject, Signal, QEventLoop, QTimer
 
 from core.qt_threading.messages.MessageBase import MessageBase
 
@@ -38,7 +38,8 @@ class CommonSignals(QObject):
 def blocking_response_message_await(request_signal: Signal,
                                     request_message: MessageBase,
                                     response_signal: Signal,
-                                    response_message_type: Type[MessageBase]):
+                                    response_message_type: Type[MessageBase],
+                                    timeout: int = 1000):  # Timeout in milliseconds (default 1 second)
     ret_val: MessageBase | None = None
     loop: QEventLoop = QEventLoop()
 
@@ -48,9 +49,21 @@ def blocking_response_message_await(request_signal: Signal,
             ret_val = message
             loop.quit()
 
+    # Set up the timeout mechanism using QTimer
+    timer = QTimer()
+    timer.setSingleShot(True)
+    timer.timeout.connect(loop.quit)  # Quit the event loop when the timeout occurs
+
     response_signal.connect(_message_type_check)
     request_signal.emit(request_message)
 
+    # Start the timer and the event loop
+    timer.start(timeout)
     loop.exec_()
+
+    # Clean up
     response_signal.disconnect(_message_type_check)
+    if timer.isActive():
+        timer.stop()  # Stop the timer if the response was received before timeout
+
     return ret_val
