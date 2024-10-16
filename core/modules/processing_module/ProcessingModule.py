@@ -62,7 +62,7 @@ class ProcessingModule(QObject):
         params: dict = request.param_dict
 
         processed = self.process(image, params)
-        contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         # print(' '.join(str(*array[0]) for array in contours)+"\n")
 
         img_no_bg = self.remove_background(image, contours)

@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, QThread
 from PySide6.QtGui import QPixmap, QImage
 
 from core.modules.catalog.Coin import Coin
+from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
@@ -68,28 +69,33 @@ class CoinCatalogHandler(QObject):
                     coin_catalog_dict[year][country] = {}
 
                     for coin_name, coin_attributes in coins.items():
-                        coin = Coin(coin_name)
-                        coin.year = year
-                        coin.country = country
+                        coin = Coin(name=coin_name, year=year, country=country)
 
                         try:
                             for param_name, value in coin_attributes["training_params"].items():
                                 passed = coin.add_training_param(param_name=param_name, value=value)
                                 if not passed:
                                     return False
-                            for param_name, value in coin_attributes["coin_params"].items():
-                                passed = coin.add_coin_param(param_name=param_name, value=value)
-                                if not passed:
-                                    return False
+
+                            coin.contour_detection_params = ContourDetectionSettings(coin_attributes.get("contour_detection_params", None))
+
+                            # Check whether every PNG mentioned in catalog.json exists
                             for picture_file, attributes in coin_attributes["pictures"].items():
-                                file_path = os.path.join(self.catalog_path, coin.year, coin.country, coin.name, picture_file)
+                                file_path = os.path.join(self.catalog_path, coin.coin_dir_path(), picture_file)
                                 if not os.path.exists(file_path) or not os.path.isfile(file_path):
                                     continue
-                                coin.add_picture(picture_file=picture_file)
-                                vertices: list[list[float, float]] = attributes["vertices"]
-                                passed = coin.add_vertices_to_picture(picture_file=picture_file, vertices=vertices)
-                                if not passed:
-                                    return False
+                                coin.add_picture(picture_file=picture_file.lower())
+
+                            # Add PNGs present in coin directory to pictures
+                            for filename in os.listdir(os.path.join(self.catalog_path, coin.coin_dir_path())):
+                                if filename.lower().endswith('.png') and filename.lower() not in coin.pictures:
+                                    coin.add_picture(picture_file=picture_file.lower())
+
+
+                                # vertices: list[list[float, float]] = attributes["vertices"]
+                                # passed = coin.add_vertices_to_picture(picture_file=picture_file, vertices=vertices)
+                                # if not passed:
+                                #     return False
                         except KeyError as ex:
                             print(ex)
                             return False

@@ -1,18 +1,25 @@
 from os import path
 
+from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
+
 
 class Coin:
     year: str
     country: str
     training_params: dict
-    coin_params: dict
+    contour_detection_params: ContourDetectionSettings
     name: str = None
     pictures: dict[str, dict]
 
-    def __init__(self, name: str, year: str = None, country: str = None):
+    def __init__(self,
+                 name: str,
+                 year: str = None,
+                 country: str = None,
+                 contour_detection_params: ContourDetectionSettings | None = None):
         self.name = name
         self.year = year
         self.country = country
+        self.contour_detection_params = contour_detection_params
         self.training_params = {}
         self.pictures = {}
         self.coin_params = {}
@@ -22,7 +29,7 @@ class Coin:
         return True
 
     def add_picture(self, picture_file: str) -> bool:
-        self.pictures[picture_file] = {"vertices": []}
+        self.pictures[picture_file] = {"cropped_version": ""}
         return True
 
     def add_coin_param(self, param_name: str, value: int):
@@ -44,6 +51,7 @@ class Coin:
 
     def to_dict(self):
         return {
+            "contour_detection_params": self.contour_detection_params,
             "training_params": self.training_params,
             "coin_params": self.coin_params,
             "pictures": self.pictures

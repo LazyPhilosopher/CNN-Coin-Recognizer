@@ -1,4 +1,5 @@
-RemoveBackgroundDictionary = {"Blur Kernel": (3, 50),
+RemoveBackgroundDictionary = {
+     "Blur Kernel": (3, 50),
      "Blur Sigma": (2, 30),
      "Canny Threshold 1": (50, 500),
      "Canny Threshold 2": (9, 500),
@@ -7,4 +8,5 @@ RemoveBackgroundDictionary = {"Blur Kernel": (3, 50),
      "Erode Kernel1": (13, 50),
      "Erode Kernel2": (7, 50),
      "Dilate Iterations": (11, 40),
-     "Erode Iterations": (4, 40)}
+     "Erode Iterations": (4, 40)
+}
