@@ -2,6 +2,7 @@ import shutil
 import os
 from PySide6.QtWidgets import QMessageBox, QApplication, QWidget
 
+import win32com.client
 
 def move_files(file_list, source_folder, destination_folder, create_dir=True):
     # Ensure destination folder exists if create_dir is True
@@ -38,3 +39,19 @@ def show_confirmation_dialog(parent: QWidget, title: str, message: str):
         return True  # User clicked Yes
     else:
         return False  # User clicked No
+
+
+# def on_usb_device_connected():
+#     print("A USB device has been connected.")
+#
+#
+# def monitor_usb_devices():
+#     wmi = win32com.client.GetObject("winmgmts:")
+#     watcher = wmi.ExecNotificationQuery(
+#         "SELECT * FROM Win32_DeviceChangeEvent"
+#     )
+#
+#     while True:
+#         event = watcher.NextEvent()
+#         if event:
+#             on_usb_device_connected()

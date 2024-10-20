@@ -30,6 +30,27 @@ class VideoStream(QObject):
 
         self.qt_signals.video_thread_request.connect(self.handle_request)
 
+        # self.usb_thread = threading.Thread(target=self.monitor_usb_devices)
+        # self.usb_thread.daemon = True  # Allow thread to exit when main program exits
+        # self.usb_thread.start()
+
+
+    # def on_usb_device_connected(self):
+    #     print("A USB device has been connected.")
+    #     self._camera_list_refresh()  # Refresh the camera list
+    #
+    #
+    # def monitor_usb_devices(self):
+    #     wmi = win32com.client.GetObject("winmgmts:")
+    #     watcher = wmi.ExecNotificationQuery(
+    #         "SELECT * FROM Win32_DeviceChangeEvent"
+    #     )
+    #     while True:
+    #         event = watcher.NextEvent()
+    #         if event:
+    #             self.on_usb_device_connected()
+
+
     def start_process(self):
         """Starts the video capture in a separate QProcess."""
         self.process = QProcess(self)
