@@ -10,7 +10,7 @@ from core.qt_threading.common_signals import CommonSignals, blocking_response_me
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, \
     PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest, NewCoinRequest, RemoveCoinRequest, \
-    SaveCroppedPictureRequest, DeleteCroppedPicture, UpdateCoinCameraSettingsRequest
+    SaveCroppedPictureRequest, DeleteCroppedPicture, UpdateCoinCameraSettingsRequest, CoinRenameRequest
 from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, \
     PictureResponse
 from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundSliderDictionary
@@ -21,6 +21,8 @@ from core.qt_threading.messages.video_thread.Requests import FrameAvailable, Cam
 from core.qt_threading.messages.video_thread.Responses import CameraListResponse
 from core.designer.ImageFrame import ImageFrame
 from core.designer.pyqt6_designer.d_ImageCollector import Ui_ImageCollector
+from core.utilities.CaseInsensitiveDict import CaseInsensitiveDict
+from core.utilities.helper import show_confirmation_dialog
 
 
 class ImageCollector(QMainWindow, Ui_ImageCollector):
@@ -36,7 +38,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         # self.image_label.setGeometry(0, 0, self.video_frame.width(), self.video_frame.height())
         # self.image_label.setScaledContents(True)
 
-        self.catalog: dict | None = None
+        self.catalog: CaseInsensitiveDict | None = None
         self.active_coin: Coin | None = None
 
         self.uncropped_image: QImage | None = None
@@ -67,6 +69,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.remove_coin_button.clicked.connect(self.remove_coin_routine)
         self.tabWidget.currentChanged.connect(self.tab_bar_click_routine)
         self.save_cropped_image_button.clicked.connect(self.save_image_without_background)
+        self.change_coin_params_button.clicked.connect(self.handle_coin_parameter_update)
 
         #
         self.coin_catalog_year_dropbox.currentIndexChanged.connect(self.year_dropbox_update_callback)
@@ -97,6 +100,8 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         for slider in self.sliders:
             slider.valueChanged.connect(self.update_coin_camera_settings)
 
+        self.video_frame.set_background_image(QImage("image1.png"))
+
         self.qt_signals.catalog_handler_request.emit(CatalogDictRequest(source=Modules.GALLERY_WINDOW))
         QTimer.singleShot(0, self.request_camera_ids)
 
@@ -113,20 +118,20 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             handler(request)
 
     def handle_catalog_dict_response(self, request: CatalogDictResponse):
-        print(f"[ImageGalleryWindow]: {request.catalog}")
+        # print(f"[ImageGalleryWindow]: {request.catalog}")
 
         self.catalog = request.catalog
         self.reset_dropboxes()
         try:
             # self.update_active_coin()
-            print("self.pick_coin_from_dropboxes(self.active_coin)")
+            # print("self.pick_coin_from_dropboxes(self.active_coin)")
             self.pick_coin_from_dropboxes(self.active_coin)
         except (AttributeError, KeyError):
             pass
         self.update_active_coin()
         self.current_camera_settings = self.active_coin.contour_detection_params
         self.set_background_removal_slider_values()
-        print("self.update_active_coin()")
+        # print("self.update_active_coin()")
 
     def handle_camera_list_response(self, request: CameraListResponse):
         self.camera_swich_combo_box.addItems(request.cameras)
@@ -211,7 +216,6 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.overlay.crosses = []
         self.request_picture()
 
-
     def set_year_dropbox_items(self):
         self.coin_catalog_year_dropbox.blockSignals(True)
         self.coin_catalog_year_dropbox.clear()
@@ -278,10 +282,14 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                                      source=self.module,
                                      destination=Modules.CATALOG_HANDLER)
             self.qt_signals.catalog_handler_request.emit(request)
-        else:
-            print("Dialog closed with Cancel.")
+
 
     def remove_coin_routine(self):
+        confirmed = show_confirmation_dialog(self, "Confirmation", f"Are you sure you want to delete {self.active_coin.name}?")
+
+        if not confirmed:
+            return
+
         request = RemoveCoinRequest(self.active_coin)
         self.qt_signals.catalog_handler_request.emit(request)
 
@@ -498,3 +506,24 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         self.overlay.crosses = []
         self.request_picture()
+
+    def handle_coin_parameter_update(self):
+        dialog = NewCoinDialog()
+        if dialog.exec():
+            year = dialog.coin_year_field.text()
+            country = dialog.coin_country_field.text()
+            name = dialog.coin_name_field.text()
+
+            if year == "" or country == "" or name == "":
+                return
+
+            request = CoinRenameRequest(old_coin_year=year,
+                                        old_coin_country=country,
+                                        old_coin_name=name,
+                                        new_coin_year=year,
+                                        new_coin_country=country,
+                                        new_coin_name=name,
+                                        source=self.module,
+                                        destination=Modules.CATALOG_HANDLER)
+            self.qt_signals.catalog_handler_request.emit(request)
+

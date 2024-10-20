@@ -11,10 +11,11 @@ from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesUpdateRequest, \
     SavePictureRequest, SaveCroppedPictureRequest, PictureRequest, CatalogDictRequest, NewCoinRequest, \
-    RemoveCoinRequest, DeleteCroppedPicture, UpdateCoinCameraSettingsRequest
+    RemoveCoinRequest, DeleteCroppedPicture, UpdateCoinCameraSettingsRequest, CoinRenameRequest
 from core.qt_threading.messages.catalog_handler.Responses import PictureResponse, \
     CatalogDictResponse
-
+from core.utilities.CaseInsensitiveDict import CaseInsensitiveDict
+from core.utilities.helper import move_files
 
 CATALOG_FILE_NAME = "catalog"
 
@@ -26,7 +27,7 @@ class CoinCatalogHandler(QObject):
         self.module = Modules.CATALOG_HANDLER
         project_root = 'D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer'
         self.catalog_path = os.path.join(project_root, "coin_catalog")
-        self.coin_catalog_dict = {}
+        self.coin_catalog_dict: CaseInsensitiveDict = CaseInsensitiveDict()
         self.current_picture: QPixmap | None = None
 
         self.is_running = False
@@ -57,7 +58,8 @@ class CoinCatalogHandler(QObject):
             # PictureVerticesRequest: self.handle_image_vertices_request,
             NewCoinRequest: self.handle_new_coin_request,
             RemoveCoinRequest: self.handle_remove_coin_request,
-            UpdateCoinCameraSettingsRequest: self.handle_update_coin_camera_settings
+            UpdateCoinCameraSettingsRequest: self.handle_update_coin_camera_settings,
+            CoinRenameRequest: self.handle_coin_rename
         }
 
         handler = request_handlers.get(type(request), None)
@@ -137,7 +139,7 @@ class CoinCatalogHandler(QObject):
 
     def parse_main_catalog(self) -> bool:
         catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
-        coin_catalog_dict: dict = {}
+        coin_catalog_dict: CaseInsensitiveDict = CaseInsensitiveDict()
         with open(catalog_dict_path, ) as catalog_file:
 
             file_dict = None
@@ -150,12 +152,14 @@ class CoinCatalogHandler(QObject):
             # print("Params: ", file_dict["params"])
 
             for year, countries in file_dict["coins"]["years"].items():
-                year = year.lower()
-                coin_catalog_dict[year] = {}
+                # year = year.lower()
+                year = year
+                coin_catalog_dict[year] = CaseInsensitiveDict()
 
                 for country, coins in countries.items():
-                    country = country.lower()
-                    coin_catalog_dict[year][country] = {}
+                    # country = country.lower()
+                    country = country
+                    coin_catalog_dict[year][country] = CaseInsensitiveDict()
 
                     for coin_name, coin_attributes in coins.items():
                         coin = Coin(name=coin_name, year=year, country=country)
@@ -187,9 +191,9 @@ class CoinCatalogHandler(QObject):
                                 external_cropped_pic: str = attributes.get("cropped_version", None)
 
                                 if os.path.exists(directory_cropped_pic):
-                                    coin_attributes["pictures"][picture_file]["cropped_version"] = directory_cropped_pic
+                                    coin.pictures[picture_file]["cropped_version"] = directory_cropped_pic
                                 elif external_cropped_pic and os.path.exists(external_cropped_pic):
-                                    coin_attributes["pictures"][picture_file]["cropped_version"] = external_cropped_pic
+                                    coin.pictures[picture_file]["cropped_version"] = external_cropped_pic
                                 # else:
                                 #     coin_attributes["pictures"][picture_file]["cropped_version"] = None
 
@@ -204,13 +208,18 @@ class CoinCatalogHandler(QObject):
                                         coin_attributes["pictures"][picture_file][
                                             "cropped_version"] = directory_cropped_pic
 
+                            # coin.pictures = coin_attributes["pictures"]
+                            coin.coin_params = coin_attributes["coin_params"]
+                            coin.training_params = coin_attributes["training_params"]
+
                         except KeyError as ex:
                             print(ex)
                             return False
 
-                    coin_catalog_dict[year][country][coin.name] = coin
+                        coin_catalog_dict[year][country][coin.name] = coin
 
         self.coin_catalog_dict = coin_catalog_dict
+        self.write_catalog()
         return True
 
     def add_coin_to_catalog(self, coin: Coin):
@@ -221,9 +230,9 @@ class CoinCatalogHandler(QObject):
         except KeyError:
             pass
         if coin.year not in self.coin_catalog_dict:
-            self.coin_catalog_dict[coin.year] = {}
+            self.coin_catalog_dict[coin.year] = CaseInsensitiveDict()
         if coin.country not in self.coin_catalog_dict[coin.year]:
-            self.coin_catalog_dict[coin.year][coin.country] = {}
+            self.coin_catalog_dict[coin.year][coin.country] = CaseInsensitiveDict()
         self.coin_catalog_dict[coin.year][coin.country][coin.name] = coin
 
     def remove_coin_from_catalog(self, coin: Coin):
@@ -343,6 +352,42 @@ class CoinCatalogHandler(QObject):
             return False
         return True
 
+    def handle_coin_rename(self, request: CoinRenameRequest):
+        coin: Coin = self.coin_catalog_dict[request.old_coin_year][request.old_coin_country][request.old_coin_name]
+        self.coin_catalog_dict[request.old_coin_year][request.old_coin_country].drop(request.old_coin_name)
+
+        if len(self.coin_catalog_dict[request.old_coin_year][request.old_coin_country]) == 0:
+            self.coin_catalog_dict[request.old_coin_year].drop(request.old_coin_country)
+        if len(self.coin_catalog_dict[request.old_coin_year]) == 0:
+            self.coin_catalog_dict.drop(request.old_coin_country)
+
+        if request.new_coin_year not in self.coin_catalog_dict:
+            self.coin_catalog_dict[request.new_coin_year] = CaseInsensitiveDict()
+        if request.new_coin_country not in self.coin_catalog_dict[request.new_coin_year]:
+            self.coin_catalog_dict[request.new_coin_year][request.new_coin_country] = CaseInsensitiveDict()
+        self.coin_catalog_dict[request.new_coin_year][request.new_coin_country][request.new_coin_name] = coin
+
+        source_dir = os.path.join(self.catalog_path, request.old_coin_year, request.old_coin_country,
+                                  request.old_coin_name)
+        destination_dir = os.path.join(self.catalog_path, request.new_coin_year, request.new_coin_country,
+                                       request.new_coin_name)
+        move_files(coin.pictures.keys(), source_dir, destination_dir, create_dir=True)
+
+        cropped_source_dir: str = os.path.join(self.catalog_path, "cropped", request.old_coin_year,
+                                               request.old_coin_country, request.old_coin_name)
+        cropped_destination_dir: str = os.path.join(os.path.join(self.catalog_path, "cropped", request.new_coin_year,
+                                                                 request.new_coin_country, request.new_coin_name))
+        move_files(coin.pictures.keys(), cropped_source_dir, cropped_destination_dir, create_dir=True)
+
+        coin.pictures = {}
+        for filename in os.listdir(destination_dir):
+            if filename.lower().endswith('.png'):
+                coin.pictures[filename.lower()] = {"cropped": None}
+
+                if os.path.exists(os.path.join(cropped_destination_dir, filename)):
+                    coin.pictures[filename.lower()]["cropped_version"] = os.path.join(cropped_destination_dir, filename)
+
+        self.write_catalog()
 
 class CatalogEncoder(json.JSONEncoder):
     def default(self, obj):

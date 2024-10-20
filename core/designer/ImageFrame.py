@@ -13,6 +13,7 @@ class ImageFrame(QFrame):
 
         opacity_effect = QGraphicsOpacityEffect()
         opacity_effect.setOpacity(0.5)  # 50% transparent
+        self.background_image_label.setGraphicsEffect(opacity_effect)
         self.front_image_label.setGraphicsEffect(opacity_effect)
 
         layout = QStackedLayout()

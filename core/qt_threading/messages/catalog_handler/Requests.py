@@ -123,6 +123,30 @@ class NewCoinRequest(MessageBase):
         self.destination = destination
 
 
+class CoinRenameRequest(MessageBase):
+    def __init__(self,
+                 old_coin_year: str,
+                 old_coin_country: str,
+                 old_coin_name: str,
+
+                 new_coin_year: str,
+                 new_coin_country: str,
+                 new_coin_name: str,
+                 source=None,
+                 destination=None):
+        super().__init__()
+        self.old_coin_year = old_coin_year
+        self.old_coin_country = old_coin_country
+        self.old_coin_name = old_coin_name
+
+        self.new_coin_year = new_coin_year
+        self.new_coin_country = new_coin_country
+        self.new_coin_name = new_coin_name
+
+        self.source = source
+        self.destination = destination
+
+
 class RemoveCoinRequest(MessageBase):
     def __init__(self,  coin: Coin, source=None, destination=None):
         super().__init__()

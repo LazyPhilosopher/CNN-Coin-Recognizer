@@ -8,7 +8,7 @@
         "years": {
             "30 b.c.": {
                 "rome": {
-                    "Denarius": {
+                    "denarius": {
                         "contour_detection_params": {
                             "blur_kernel": 50,
                             "blur_sigma": 2,
@@ -28,17 +28,17 @@
                         },
                         "coin_params": {},
                         "pictures": {
-                            "919de1e8-589f-42d0-9dbd-25f0abacd429.png": {
-                                "cropped_version": null
-                            },
                             "58271ad2-83cd-4fae-891a-76c3a575e77d.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\30 b.c.\\rome\\denarius\\58271ad2-83cd-4fae-891a-76c3a575e77d.png"
                             },
                             "76de5b49-0fed-4887-81ad-2c28a85cb053.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\30 b.c.\\rome\\denarius\\76de5b49-0fed-4887-81ad-2c28a85cb053.png"
                             },
-                            "8d5552c0-c9fa-4328-83e2-f778573aa2be.png": {
-                                "cropped_version": null
+                            "78099a4c-e31d-457b-aa90-0d14b595e30c.png": {
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\30 b.c.\\rome\\denarius\\78099a4c-e31d-457b-aa90-0d14b595e30c.png"
+                            },
+                            "919de1e8-589f-42d0-9dbd-25f0abacd429.png": {
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\30 b.c.\\rome\\denarius\\919de1e8-589f-42d0-9dbd-25f0abacd429.png"
                             }
                         }
                     }
@@ -46,7 +46,7 @@
             },
             "2020": {
                 "czech republic": {
-                    "50 Korun": {
+                    "50 korun": {
                         "contour_detection_params": {
                             "blur_kernel": 3,
                             "blur_sigma": 30,
@@ -63,16 +63,16 @@
                         "coin_params": {},
                         "pictures": {
                             "baabc003-99fe-4b53-8ec1-91b9db5debbf.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2020\\czech republic\\50 korun\\baabc003-99fe-4b53-8ec1-91b9db5debbf.png"
                             },
                             "aa953e84-13fb-4812-af99-f4e61fbd5b26.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2020\\czech republic\\50 korun\\aa953e84-13fb-4812-af99-f4e61fbd5b26.png"
                             },
                             "252ca739-2d3c-4566-aec7-a116c7e04746.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2020\\czech republic\\50 korun\\252ca739-2d3c-4566-aec7-a116c7e04746.png"
                             },
                             "2135bcf4-5815-41f5-884a-a2ce852f9958.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2020\\czech republic\\50 korun\\2135bcf4-5815-41f5-884a-a2ce852f9958.png"
                             }
                         }
                     }
@@ -80,7 +80,7 @@
             },
             "2018": {
                 "czech republic": {
-                    "1 Koruna": {
+                    "1 koruna": {
                         "contour_detection_params": {
                             "blur_kernel": 3,
                             "blur_sigma": 2,
@@ -97,16 +97,16 @@
                         "coin_params": {},
                         "pictures": {
                             "d0ba759f-4a7c-4597-83e7-9206df44168e.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2018\\czech republic\\1 koruna\\d0ba759f-4a7c-4597-83e7-9206df44168e.png"
                             },
                             "0d1cfe88-c980-40b1-af98-e216c7dc35e6.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2018\\czech republic\\1 koruna\\0d1cfe88-c980-40b1-af98-e216c7dc35e6.png"
                             },
                             "06e7eda0-b8da-40ba-84c9-a4c2b7e16bf0.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2018\\czech republic\\1 koruna\\06e7eda0-b8da-40ba-84c9-a4c2b7e16bf0.png"
                             },
                             "f593ab1d-a271-415f-a566-7039e291cd22.png": {
-                                "cropped_version": null
+                                "cropped_version": "D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer\\coin_catalog\\cropped\\2018\\czech republic\\1 koruna\\f593ab1d-a271-415f-a566-7039e291cd22.png"
                             }
                         }
                     }
