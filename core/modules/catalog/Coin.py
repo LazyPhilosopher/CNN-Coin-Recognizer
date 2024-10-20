@@ -29,7 +29,7 @@ class Coin:
         return True
 
     def add_picture(self, picture_file: str) -> bool:
-        self.pictures[picture_file] = {"cropped_version": ""}
+        self.pictures[picture_file] = {"cropped_version": None}
         return True
 
     def add_coin_param(self, param_name: str, value: int):

@@ -39,7 +39,7 @@ def blocking_response_message_await(request_signal: Signal,
                                     request_message: MessageBase,
                                     response_signal: Signal,
                                     response_message_type: Type[MessageBase],
-                                    timeout: int = 1000):  # Timeout in milliseconds (default 1 second)
+                                    timeout_ms: int = 1000):
     ret_val: MessageBase | None = None
     loop: QEventLoop = QEventLoop()
 
@@ -52,13 +52,13 @@ def blocking_response_message_await(request_signal: Signal,
     # Set up the timeout mechanism using QTimer
     timer = QTimer()
     timer.setSingleShot(True)
-    timer.timeout.connect(loop.quit)  # Quit the event loop when the timeout occurs
+    timer.timeout.connect(loop.quit)
 
     response_signal.connect(_message_type_check)
     request_signal.emit(request_message)
 
     # Start the timer and the event loop
-    timer.start(timeout)
+    timer.start(timeout_ms)
     loop.exec_()
 
     # Clean up

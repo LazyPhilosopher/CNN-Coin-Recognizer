@@ -65,9 +65,11 @@ class VideoStream(QObject):
             handler(request)
 
     def handle_camera_list_message(self, _: CameraListMessage):
-        self.moveToThread(self.temp_thread)
-        self.temp_thread.started.connect(self._camera_list_refresh)
-        self.temp_thread.start()
+        request = CameraListResponse(camera_list=self.camera_list, source=Modules.VIDEO_STREAM)
+        self.qt_signals.video_thread_request.emit(request)
+        # self.moveToThread(self.temp_thread)
+        # self.temp_thread.started.connect(self._camera_list_refresh)
+        # self.temp_thread.start()
 
     def handle_change_video_input(self, request: ChangeVideoInput):
         if request.device_id != self.device_id:

@@ -139,7 +139,7 @@
        <string>New Coin</string>
       </property>
      </widget>
-     <widget class="QSlider" name="blur_kernel_slider">
+     <widget class="QSlider" name="camera_blur_kernel_slider">
       <property name="geometry">
        <rect>
         <x>89</x>
@@ -171,7 +171,7 @@
        <string>Blur Kernel</string>
       </property>
      </widget>
-     <widget class="QSlider" name="blur_sigma_slider">
+     <widget class="QSlider" name="camera_blur_sigma_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -190,7 +190,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="canny_thr_1_slider">
+     <widget class="QSlider" name="camera_canny_thr_1_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -209,7 +209,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="canny_thr_2_slider">
+     <widget class="QSlider" name="camera_canny_thr_2_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -228,7 +228,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="dilate_1_slider">
+     <widget class="QSlider" name="camera_dilate_1_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -247,7 +247,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="dilate_2_slider">
+     <widget class="QSlider" name="camera_dilate_2_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -266,7 +266,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="erode_1_slider">
+     <widget class="QSlider" name="camera_erode_1_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -363,7 +363,7 @@
        <string>Erode Kernel1</string>
       </property>
      </widget>
-     <widget class="QSlider" name="erode_2_slider">
+     <widget class="QSlider" name="camera_erode_2_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -395,7 +395,7 @@
        <string>Erode Kernel2</string>
       </property>
      </widget>
-     <widget class="QSlider" name="dilate_iter_slider">
+     <widget class="QSlider" name="camera_dilate_iter_slider">
       <property name="geometry">
        <rect>
         <x>90</x>
@@ -414,7 +414,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QSlider" name="erode_iter_slider">
+     <widget class="QSlider" name="camera_erode_iter_slider">
       <property name="geometry">
        <rect>
         <x>90</x>

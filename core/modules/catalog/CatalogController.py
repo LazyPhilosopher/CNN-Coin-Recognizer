@@ -9,10 +9,10 @@ from core.modules.catalog.Coin import Coin
 from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
-from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesRequest, PictureVerticesUpdateRequest, \
+from core.qt_threading.messages.catalog_handler.Requests import PictureVerticesUpdateRequest, \
     SavePictureRequest, SaveCroppedPictureRequest, PictureRequest, CatalogDictRequest, NewCoinRequest, \
-    RemoveCoinRequest, DeleteCroppedPicture
-from core.qt_threading.messages.catalog_handler.Responses import PictureVerticesResponse, PictureResponse, \
+    RemoveCoinRequest, DeleteCroppedPicture, UpdateCoinCameraSettingsRequest
+from core.qt_threading.messages.catalog_handler.Responses import PictureResponse, \
     CatalogDictResponse
 
 
@@ -46,65 +46,6 @@ class CoinCatalogHandler(QObject):
         # while self.is_running:
         #     QApplication.processEvents()
 
-    def parse_main_catalog(self) -> bool:
-        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
-        coin_catalog_dict: dict = {}
-        with open(catalog_dict_path, ) as catalog_file:
-
-            file_dict = None
-            try:
-                file_dict = json.load(catalog_file)
-            except json.decoder.JSONDecodeError as ex:
-                print(ex)
-                return False
-            self.global_params = file_dict["params"]
-            # print("Params: ", file_dict["params"])
-
-            for year, countries in file_dict["coins"]["years"].items():
-                year = year.lower()
-                coin_catalog_dict[year] = {}
-
-                for country, coins in countries.items():
-                    country = country.lower()
-                    coin_catalog_dict[year][country] = {}
-
-                    for coin_name, coin_attributes in coins.items():
-                        coin = Coin(name=coin_name, year=year, country=country)
-
-                        try:
-                            for param_name, value in coin_attributes["training_params"].items():
-                                passed = coin.add_training_param(param_name=param_name, value=value)
-                                if not passed:
-                                    return False
-
-                            coin.contour_detection_params = ContourDetectionSettings(coin_attributes.get("contour_detection_params", None))
-
-                            # Check whether every PNG mentioned in catalog.json exists
-                            for picture_file, attributes in coin_attributes["pictures"].items():
-                                file_path = os.path.join(self.catalog_path, coin.coin_dir_path(), picture_file)
-                                if not os.path.exists(file_path) or not os.path.isfile(file_path):
-                                    continue
-                                coin.add_picture(picture_file=picture_file.lower())
-
-                            # Add PNGs present in coin directory to pictures
-                            for filename in os.listdir(os.path.join(self.catalog_path, coin.coin_dir_path())):
-                                if filename.lower().endswith('.png') and filename.lower() not in coin.pictures:
-                                    coin.add_picture(picture_file=picture_file.lower())
-
-
-                                # vertices: list[list[float, float]] = attributes["vertices"]
-                                # passed = coin.add_vertices_to_picture(picture_file=picture_file, vertices=vertices)
-                                # if not passed:
-                                #     return False
-                        except KeyError as ex:
-                            print(ex)
-                            return False
-
-                    coin_catalog_dict[year][country][coin.name] = coin
-
-        self.coin_catalog_dict = coin_catalog_dict
-        return True
-
     def handle_request(self, request: MessageBase):
         request_handlers = {
             CatalogDictRequest: self.handle_coin_catalog_request,
@@ -115,7 +56,8 @@ class CoinCatalogHandler(QObject):
             DeleteCroppedPicture: self.handle_delete_cropped_picture_request,
             # PictureVerticesRequest: self.handle_image_vertices_request,
             NewCoinRequest: self.handle_new_coin_request,
-            RemoveCoinRequest: self.handle_remove_coin_request
+            RemoveCoinRequest: self.handle_remove_coin_request,
+            UpdateCoinCameraSettingsRequest: self.handle_update_coin_camera_settings
         }
 
         handler = request_handlers.get(type(request), None)
@@ -154,8 +96,8 @@ class CoinCatalogHandler(QObject):
                                       coin=request.coin)
 
     def handle_delete_cropped_picture_request(self, request: DeleteCroppedPicture):
-        self.add_cropped_coin_picture(picture_filename=request.picture_file,
-                                      coin=request.coin)
+        self.delete_cropped_coin_picture(picture_filename=request.picture_file,
+                                         coin=request.coin)
 
     # def handle_image_vertices_request(self, request: PictureVerticesRequest):
     #     coin_year: str = request.coin.year
@@ -181,6 +123,95 @@ class CoinCatalogHandler(QObject):
         self.remove_coin_from_catalog(coin=request.coin)
         self.write_catalog()
         self.handle_coin_catalog_request(CatalogDictRequest(source=self.module, destination=self.module))
+
+    def handle_update_coin_camera_settings(self, request: UpdateCoinCameraSettingsRequest):
+        c: Coin = request.coin
+        coin = self.coin_catalog_dict[c.year][c.country][c.name]
+        coin.contour_detection_params = request.params
+        self.write_catalog()
+
+        response = CatalogDictResponse(source=Modules.CATALOG_HANDLER,
+                                       destination=request.source,
+                                       data=self.coin_catalog_dict)
+        self.qt_signals.catalog_handler_response.emit(response)
+
+    def parse_main_catalog(self) -> bool:
+        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
+        coin_catalog_dict: dict = {}
+        with open(catalog_dict_path, ) as catalog_file:
+
+            file_dict = None
+            try:
+                file_dict = json.load(catalog_file)
+            except json.decoder.JSONDecodeError as ex:
+                print(ex)
+                return False
+            self.global_params = file_dict["params"]
+            # print("Params: ", file_dict["params"])
+
+            for year, countries in file_dict["coins"]["years"].items():
+                year = year.lower()
+                coin_catalog_dict[year] = {}
+
+                for country, coins in countries.items():
+                    country = country.lower()
+                    coin_catalog_dict[year][country] = {}
+
+                    for coin_name, coin_attributes in coins.items():
+                        coin = Coin(name=coin_name, year=year, country=country)
+
+                        try:
+                            for param_name, value in coin_attributes["training_params"].items():
+                                passed = coin.add_training_param(param_name=param_name, value=value)
+                                if not passed:
+                                    return False
+
+                            # try reading out CV2 coin contour detection params. Reinit them if none found.
+                            contour_detection_params = coin_attributes.get("contour_detection_params")
+                            coin.contour_detection_params = ContourDetectionSettings.from_dict(
+                                contour_detection_params) if contour_detection_params else ContourDetectionSettings()
+
+                            # Check whether every PNG mentioned in catalog.json exists
+                            for picture_file, attributes in coin_attributes["pictures"].items():
+                                file_path = os.path.join(self.catalog_path, coin.coin_dir_path(), picture_file)
+
+                                # Do not add link to coin photo if no such file exists.
+                                if not os.path.exists(file_path) or not os.path.isfile(file_path):
+                                    continue
+                                coin.add_picture(picture_file=picture_file.lower())
+
+                                # In case both catalog photo has link to cropped photo outside catalog directory and
+                                # cropped photo exists in catalog folder - prefer catalog folder cropped photo.
+                                directory_cropped_pic: str = os.path.join(self.catalog_path, "cropped",
+                                                                          coin.coin_dir_path(), picture_file)
+                                external_cropped_pic: str = attributes.get("cropped_version", None)
+
+                                if os.path.exists(directory_cropped_pic):
+                                    coin_attributes["pictures"][picture_file]["cropped_version"] = directory_cropped_pic
+                                elif external_cropped_pic and os.path.exists(external_cropped_pic):
+                                    coin_attributes["pictures"][picture_file]["cropped_version"] = external_cropped_pic
+                                # else:
+                                #     coin_attributes["pictures"][picture_file]["cropped_version"] = None
+
+                            # Add PNGs present in coin directory to pictures
+                            for filename in os.listdir(os.path.join(self.catalog_path, coin.coin_dir_path())):
+                                if filename.lower().endswith('.png') and filename.lower() not in coin.pictures:
+                                    coin.add_picture(picture_file=picture_file.lower())
+
+                                    directory_cropped_pic: str = os.path.join(self.catalog_path, "cropped",
+                                                                              coin.coin_dir_path(), picture_file)
+                                    if os.path.exists(directory_cropped_pic):
+                                        coin_attributes["pictures"][picture_file][
+                                            "cropped_version"] = directory_cropped_pic
+
+                        except KeyError as ex:
+                            print(ex)
+                            return False
+
+                    coin_catalog_dict[year][country][coin.name] = coin
+
+        self.coin_catalog_dict = coin_catalog_dict
+        return True
 
     def add_coin_to_catalog(self, coin: Coin):
         try:

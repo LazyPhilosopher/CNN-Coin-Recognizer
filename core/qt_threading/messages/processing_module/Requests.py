@@ -1,6 +1,7 @@
 from PySide6.QtCore import QPoint
 from PySide6.QtGui import QPixmap, QImage
 
+from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.messages.MessageBase import MessageBase
 
 
@@ -30,10 +31,10 @@ class BorderDetectionRequest(MessageBase):
 
 
 class RemoveBackgroundRequest(MessageBase):
-    def __init__(self,  picture: QImage, param_dict: dict, source=None, destination=None):
+    def __init__(self,  picture: QImage, params: ContourDetectionSettings, source=None, destination=None):
         super().__init__()
         self.picture = picture
-        self.param_dict = param_dict
+        self.params = params
         self.source = source
         self.destination = destination
 

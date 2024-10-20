@@ -2,6 +2,7 @@ from PySide6.QtCore import QObject, QThread, QPoint
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
+from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 
@@ -9,7 +10,7 @@ from core.qt_threading.messages.MessageBase import MessageBase, Modules
 import cv2
 import numpy as np
 
-from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundDictionary
+from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundSliderDictionary
 from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest, \
     RemoveBackgroundRequest, RemoveBackgroundVerticesRequest
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
@@ -59,7 +60,7 @@ class ProcessingModule(QObject):
 
     def handle_remove_background(self, request: RemoveBackgroundRequest):
         image = self.qimage_to_cv2(request.picture)
-        params: dict = request.param_dict
+        params: dict = request.params
 
         processed = self.process(image, params)
         contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -168,13 +169,13 @@ class ProcessingModule(QObject):
         height, width = data.shape
         return QImage(data, width, height, QImage.Format_Grayscale8)
 
-    def process(self, img, params: RemoveBackgroundDictionary):
+    def process(self, img, params: ContourDetectionSettings):
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        b_k = params["Blur Kernel"] // 2 * 2 + 1  # Ensure kernel size is odd
-        img_blur = cv2.GaussianBlur(img_gray, (b_k, b_k), params["Blur Sigma"])
-        img_canny = cv2.Canny(img_blur, params["Canny Threshold 1"], params["Canny Threshold 2"])
-        img_dilate = cv2.dilate(img_canny, np.ones((params["Dilate Kernel1"], params["Dilate Kernel2"])), iterations=params["Dilate Iterations"])
-        img_erode = cv2.erode(img_dilate, np.ones((params["Erode Kernel1"], params["Erode Kernel1"])), iterations=params["Erode Iterations"])
+        b_k = params.blur_kernel // 2 * 2 + 1  # Ensure kernel size is odd
+        img_blur = cv2.GaussianBlur(img_gray, (b_k, b_k), params.blur_sigma)
+        img_canny = cv2.Canny(img_blur, params.canny_threshold_1, params.canny_threshold_2)
+        img_dilate = cv2.dilate(img_canny, np.ones((params.dilate_kernel_1, params.dilate_kernel_2)), iterations=params.dilate_iteration)
+        img_erode = cv2.erode(img_dilate, np.ones((params.erode_kernel_1, params.erode_kernel_2)), iterations=params.erode_iteration)
         return img_erode
 
     def remove_background(self, img, contours):

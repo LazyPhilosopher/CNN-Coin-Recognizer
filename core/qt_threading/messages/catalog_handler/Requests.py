@@ -2,6 +2,7 @@ from PySide6.QtCore import QPoint
 from PySide6.QtGui import QPixmap, QImage
 
 from core.modules.catalog.Coin import Coin
+from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.messages.MessageBase import MessageBase
 
 
@@ -51,19 +52,19 @@ class SaveCroppedPictureRequest(MessageBase):
         self.destination = destination
 
 
-class SaveVerticeCropPictureRequest(MessageBase):
-    def __init__(self,
-                 coin: Coin,
-                 picture_name: str,
-                 qpoint_list: list[QPoint],
-                 source=None,
-                 destination=None):
-        super().__init__()
-        self.coin = coin
-        self.picture_name = picture_name
-        self.qpoint_list = qpoint_list
-        self.source = source
-        self.destination = destination
+# class SaveVerticeCropPictureRequest(MessageBase):
+#     def __init__(self,
+#                  coin: Coin,
+#                  picture_name: str,
+#                  qpoint_list: list[QPoint],
+#                  source=None,
+#                  destination=None):
+#         super().__init__()
+#         self.coin = coin
+#         self.picture_name = picture_name
+#         self.qpoint_list = qpoint_list
+#         self.source = source
+#         self.destination = destination
 
 
 class PictureVerticesUpdateRequest(MessageBase):
@@ -126,5 +127,14 @@ class RemoveCoinRequest(MessageBase):
     def __init__(self,  coin: Coin, source=None, destination=None):
         super().__init__()
         self.coin = coin
+        self.source = source
+        self.destination = destination
+
+
+class UpdateCoinCameraSettingsRequest(MessageBase):
+    def __init__(self,  coin: Coin, params: ContourDetectionSettings, source=None, destination=None):
+        super().__init__()
+        self.coin = coin
+        self.params: ContourDetectionSettings = params
         self.source = source
         self.destination = destination

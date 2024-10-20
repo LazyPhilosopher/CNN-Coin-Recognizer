@@ -4,16 +4,17 @@ from PySide6.QtWidgets import QMainWindow
 
 from core.designer.pyqt6_designer.NewCoinDialog import NewCoinDialog
 from core.modules.catalog.Coin import Coin
+from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.modules.catalog.DraggableCrossesOverlay import DraggableCrossesOverlay
 from core.qt_threading.common_signals import CommonSignals, blocking_response_message_await
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
 from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest, \
     PictureRequest, SavePictureRequest, PictureVerticesUpdateRequest, NewCoinRequest, RemoveCoinRequest, \
-    SaveCroppedPictureRequest, SaveVerticeCropPictureRequest, DeleteCroppedPicture
+    SaveCroppedPictureRequest, DeleteCroppedPicture, UpdateCoinCameraSettingsRequest
 from core.qt_threading.messages.catalog_handler.Responses import CatalogDictResponse, \
     PictureResponse
-from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundDictionary
-from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, RemoveBackgroundRequest, \
+from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundSliderDictionary
+from core.qt_threading.messages.processing_module.Requests import RemoveBackgroundRequest, \
     RemoveBackgroundVerticesRequest
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
 from core.qt_threading.messages.video_thread.Requests import FrameAvailable, CameraListMessage
@@ -41,36 +42,60 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.uncropped_image: QImage | None = None
         self.cropped_picture: QImage | None = None
 
+        self.current_camera_settings: ContourDetectionSettings = ContourDetectionSettings()
+
         self.current_picture_name: str = ""
         self.image_idx: int = 0
 
         self.overlay = DraggableCrossesOverlay(self.video_frame)
         self.overlay.setGeometry(self.video_frame.rect())
 
+        # Outer module incoming requests
         self.qt_signals.catalog_handler_response.connect(self.handle_request)
         self.qt_signals.video_thread_request.connect(self.handle_request)
         self.qt_signals.frame_available.connect(self.handle_request)
-        self.next_gallery_photo_button.clicked.connect(self.next_picture_button_callback)
-        self.previous_gallery_photo_button.clicked.connect(self.previous_picture_button_callback)
+
+        # Next/Previous buttons callback
+        self.next_gallery_photo_button.clicked.connect(lambda: self.picture_next_prev__button_callback(1))
+        self.previous_gallery_photo_button.clicked.connect(lambda: self.picture_next_prev__button_callback(-1))
+
+        #
         self.manual_contour_reset_button.clicked.connect(self.reset_coin_vertices)
         self.overlay.mouse_released.connect(self.update_edges)
         self.save_photo_button.clicked.connect(self.save_photo)
         self.new_coin_button.clicked.connect(self.new_coin_routine)
         self.remove_coin_button.clicked.connect(self.remove_coin_routine)
         self.tabWidget.currentChanged.connect(self.tab_bar_click_routine)
+        self.save_cropped_image_button.clicked.connect(self.save_image_without_background)
+
+        #
         self.coin_catalog_year_dropbox.currentIndexChanged.connect(self.year_dropbox_update_callback)
         self.coin_catalog_country_dropbox.currentIndexChanged.connect(self.country_dropbox_update_callback)
         self.redraw_coin_contour_checkbox.stateChanged.connect(self.handle_redraw_coin_contour_checkbox)
         self.automatic_contour_detextion_checkbox.stateChanged.connect(self.handle_automatic_contour_detection_checkbox)
 
-        self.gallery_dilate_1_slider.valueChanged.connect(self.request_background_free_image)
-        self.gallery_dilate_2_slider.valueChanged.connect(self.request_background_free_image)
-        self.gallery_erode_1_slider.valueChanged.connect(self.request_background_free_image)
-        self.gallery_erode_2_slider.valueChanged.connect(self.request_background_free_image)
-        self.gallery_blur_kernel_slider.valueChanged.connect(self.request_background_free_image)
-        self.gallery_dilate_iter_slider.valueChanged.connect(self.request_background_free_image)
-        self.gallery_erode_iter_slider.valueChanged.connect(self.request_background_free_image)
-        self.save_cropped_image_button.clicked.connect(self.save_image_without_background)
+        self.sliders = [
+            self.camera_blur_kernel_slider,
+            self.camera_blur_sigma_slider,
+            self.camera_canny_thr_1_slider,
+            self.camera_canny_thr_2_slider,
+            self.camera_dilate_1_slider,
+            self.camera_dilate_2_slider,
+            self.camera_erode_1_slider,
+            self.camera_erode_2_slider,
+            self.camera_dilate_iter_slider,
+            self.camera_erode_iter_slider,
+
+            self.gallery_dilate_1_slider,
+            self.gallery_dilate_2_slider,
+            self.gallery_erode_1_slider,
+            self.gallery_erode_2_slider,
+            self.gallery_blur_kernel_slider,
+            self.gallery_dilate_iter_slider,
+            self.gallery_erode_iter_slider
+        ]
+        for slider in self.sliders:
+            slider.valueChanged.connect(self.update_coin_camera_settings)
 
         self.qt_signals.catalog_handler_request.emit(CatalogDictRequest(source=Modules.GALLERY_WINDOW))
         QTimer.singleShot(0, self.request_camera_ids)
@@ -99,6 +124,8 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         except (AttributeError, KeyError):
             pass
         self.update_active_coin()
+        self.current_camera_settings = self.active_coin.contour_detection_params
+        self.set_background_removal_slider_values()
         print("self.update_active_coin()")
 
     def handle_camera_list_response(self, request: CameraListResponse):
@@ -122,7 +149,6 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                 self.redraw_coin_contour_checkbox.setChecked(True)
                 self.redraw_coin_contour_checkbox.setEnabled(False)
 
-
             # width = self.video_frame.width()
             # height = self.video_frame.height()
             # crosses = [QPoint(x * width, y * height) for (x, y) in vertices]
@@ -134,12 +160,12 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         current_tab_index = self.tabWidget.currentIndex()
         if self.tabWidget.tabText(current_tab_index) == "Camera":
             if self.auto_mark_edges_checkbox.isChecked():
-                param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
+                # param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
                 message = RemoveBackgroundRequest(
                     source=Modules.CATALOG_HANDLER,
                     destination=Modules.PROCESSING_MODULE,
                     picture=request.frame,
-                    param_dict=param_dict)
+                    params=self.current_camera_settings)
 
                 response: ProcessedImageResponse = blocking_response_message_await(
                     request_signal=self.qt_signals.processing_module_request,
@@ -180,17 +206,11 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     def request_camera_ids(self):
         self.qt_signals.video_thread_request.emit(CameraListMessage())
 
-    def next_picture_button_callback(self):
-        print(f"Next button")
-        self.image_idx += 1
+    def picture_next_prev__button_callback(self, step: int):
+        self.image_idx += step
         self.overlay.crosses = []
         self.request_picture()
 
-    def previous_picture_button_callback(self):
-        print(f"Previous button")
-        self.image_idx -= 1
-        self.overlay.crosses = []
-        self.request_picture()
 
     def set_year_dropbox_items(self):
         self.coin_catalog_year_dropbox.blockSignals(True)
@@ -289,6 +309,18 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.update_active_coin()
         self.request_picture()
 
+        if self.active_coin and self.active_coin.contour_detection_params:
+            self.current_camera_settings = self.active_coin.contour_detection_params
+
+            for slider in self.sliders:
+                slider.blockSignals(True)
+
+            self.set_background_removal_slider_values()
+
+            for slider in self.sliders:
+                slider.blockSignals(False)
+
+
     def update_active_coin(self):
         year = self.coin_catalog_year_dropbox.currentText()
         country = self.coin_catalog_country_dropbox.currentText()
@@ -332,32 +364,50 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         self.request_picture()
 
-    def get_background_removal_params_dict(self) -> dict:
-        param_dict: RemoveBackgroundDictionary = RemoveBackgroundDictionary
+    def update_background_removal_params_dict(self) -> None:
         current_tab_index = self.tabWidget.currentIndex()
         if self.tabWidget.tabText(current_tab_index) == "Camera":
-            param_dict["Blur Kernel"] = self.blur_kernel_slider.value()
-            param_dict["Blur Sigma"] = self.blur_sigma_slider.value()
-            param_dict["Canny Threshold 1"] = self.canny_thr_1_slider.value()
-            param_dict["Canny Threshold 2"] = self.canny_thr_2_slider.value()
-            param_dict["Dilate Kernel1"] = self.dilate_1_slider.value()
-            param_dict["Dilate Kernel2"] = self.dilate_2_slider.value()
-            param_dict["Erode Kernel1"] = self.erode_1_slider.value()
-            param_dict["Erode Kernel2"] = self.erode_2_slider.value()
-            param_dict["Dilate Iterations"] = self.dilate_iter_slider.value()
-            param_dict["Erode Iterations"] = self.erode_iter_slider.value()
+            self.current_camera_settings.blur_kernel = self.camera_blur_kernel_slider.value()
+            self.current_camera_settings.blur_sigma = self.camera_blur_sigma_slider.value()
+            self.current_camera_settings.canny_threshold_1 = self.camera_canny_thr_1_slider.value()
+            self.current_camera_settings.canny_threshold_2 = self.camera_canny_thr_2_slider.value()
+            self.current_camera_settings.dilate_kernel_1 = self.camera_dilate_1_slider.value()
+            self.current_camera_settings.dilate_kernel_2 = self.camera_dilate_2_slider.value()
+            self.current_camera_settings.erode_kernel_1 = self.camera_erode_1_slider.value()
+            self.current_camera_settings.erode_kernel_2 = self.camera_erode_2_slider.value()
+            self.current_camera_settings.dilate_iteration = self.camera_dilate_iter_slider.value()
+            self.current_camera_settings.erode_iteration = self.camera_erode_iter_slider.value()
         elif self.tabWidget.tabText(current_tab_index) == "Gallery":
-            param_dict["Blur Kernel"] = self.gallery_blur_kernel_slider.value()
-            param_dict["Blur Sigma"] = 2
-            param_dict["Canny Threshold 1"] = 50
-            param_dict["Canny Threshold 2"] = 9
-            param_dict["Dilate Kernel1"] = self.gallery_dilate_1_slider.value()
-            param_dict["Dilate Kernel2"] = self.gallery_dilate_2_slider.value()
-            param_dict["Erode Kernel1"] = self.gallery_erode_1_slider.value()
-            param_dict["Erode Kernel2"] = self.gallery_erode_2_slider.value()
-            param_dict["Dilate Iterations"] = self.gallery_dilate_iter_slider.value()
-            param_dict["Erode Iterations"] = self.gallery_erode_iter_slider.value()
-        return param_dict
+            self.current_camera_settings.blur_kernel = self.gallery_blur_kernel_slider.value()
+            self.current_camera_settings.blur_sigma = 2
+            self.current_camera_settings.canny_threshold_1 = 50
+            self.current_camera_settings.canny_threshold_2 = 9
+            self.current_camera_settings.dilate_kernel_1 = self.gallery_dilate_1_slider.value()
+            self.current_camera_settings.dilate_kernel_2 = self.gallery_dilate_2_slider.value()
+            self.current_camera_settings.erode_kernel_1 = self.gallery_erode_1_slider.value()
+            self.current_camera_settings.erode_kernel_2 = self.gallery_erode_2_slider.value()
+            self.current_camera_settings.dilate_iteration = self.gallery_dilate_iter_slider.value()
+            self.current_camera_settings.erode_iteration = self.gallery_erode_iter_slider.value()
+
+    def set_background_removal_slider_values(self):
+        self.camera_blur_kernel_slider.setValue(self.current_camera_settings.blur_kernel)
+        self.camera_blur_sigma_slider.setValue(self.current_camera_settings.blur_sigma)
+        self.camera_canny_thr_1_slider.setValue(self.current_camera_settings.canny_threshold_1)
+        self.camera_canny_thr_2_slider.setValue(self.current_camera_settings.canny_threshold_2)
+        self.camera_dilate_1_slider.setValue(self.current_camera_settings.dilate_kernel_1)
+        self.camera_dilate_2_slider.setValue(self.current_camera_settings.dilate_kernel_2)
+        self.camera_erode_1_slider.setValue(self.current_camera_settings.erode_kernel_1)
+        self.camera_erode_2_slider.setValue(self.current_camera_settings.erode_kernel_2)
+        self.camera_dilate_iter_slider.setValue(self.current_camera_settings.dilate_iteration)
+        self.camera_erode_iter_slider.setValue(self.current_camera_settings.erode_iteration)
+
+        self.gallery_blur_kernel_slider.setValue(self.current_camera_settings.blur_kernel)
+        self.gallery_dilate_1_slider.setValue(self.current_camera_settings.dilate_kernel_1)
+        self.gallery_dilate_2_slider.setValue(self.current_camera_settings.dilate_kernel_2)
+        self.gallery_erode_1_slider.setValue(self.current_camera_settings.erode_kernel_1)
+        self.gallery_erode_2_slider.setValue(self.current_camera_settings.erode_kernel_2)
+        self.gallery_dilate_iter_slider.setValue(self.current_camera_settings.dilate_iteration)
+        self.gallery_erode_iter_slider.setValue(self.current_camera_settings.erode_iteration)
 
     def handle_redraw_coin_contour_checkbox(self):
         if self.redraw_coin_contour_checkbox.isChecked():
@@ -370,16 +420,34 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     def handle_automatic_contour_detection_checkbox(self):
         if self.automatic_contour_detextion_checkbox.isChecked():
             self.request_background_free_image()
+            self.video_frame.set_front_image(self.cropped_picture)
         else:
             self.video_frame.set_front_image(self.uncropped_image)
 
+    def update_coin_camera_settings(self):
+        # if not self.active_coin:
+        #     return
+        self.update_background_removal_params_dict()
+        self.set_background_removal_slider_values()  # updating interconnected slider values
+
+        if self.active_coin:
+            self.qt_signals.catalog_handler_request.emit(UpdateCoinCameraSettingsRequest(
+                coin=self.active_coin,
+                params=self.current_camera_settings
+            ))
+        #
+        # # If current tab is Gallery then request cropped picture with new params
+        # current_tab_index = self.tabWidget.currentIndex()
+        # if self.tabWidget.tabText(current_tab_index) == "Gallery":
+        #     self.request_background_free_image()
+
     def request_background_free_image(self) -> QImage:
-        param_dict: RemoveBackgroundDictionary = self.get_background_removal_params_dict()
+        # Wait for Processing module to return an image with deleted background.
         message = RemoveBackgroundRequest(
             source=Modules.CATALOG_HANDLER,
             destination=Modules.PROCESSING_MODULE,
             picture=self.uncropped_image,
-            param_dict=param_dict)
+            params=self.current_camera_settings)
 
         response: ProcessedImageResponse = blocking_response_message_await(
             request_signal=self.qt_signals.processing_module_request,
@@ -387,7 +455,9 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             response_signal=self.qt_signals.processing_module_request,
             response_message_type=ProcessedImageResponse)
         self.cropped_picture = response.image
-        self.video_frame.set_front_image(self.cropped_picture)
+
+        # print slider values
+        # print(self.get_background_removal_params_dict())
 
     def save_image_without_background(self):
         if len(self.overlay.crosses) >= 3:
