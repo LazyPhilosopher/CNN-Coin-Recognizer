@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'd_main_window.designer'
+## Form generated from reading UI file 'd_main_window.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.5.2
 ##
@@ -38,9 +38,9 @@ class Ui_MainWindow(object):
         self.AddImageButton.setObjectName(u"AddImageButton")
         self.AddImageButton.setGeometry(QRect(30, 20, 171, 41))
         self.AddImageButton.setLocale(QLocale(QLocale.English, QLocale.UnitedStates))
-        self.ImageGalleryButton = QPushButton(self.centralwidget)
-        self.ImageGalleryButton.setObjectName(u"ImageGalleryButton")
-        self.ImageGalleryButton.setGeometry(QRect(30, 70, 171, 41))
+        self.ImageAugmentationButton = QPushButton(self.centralwidget)
+        self.ImageAugmentationButton.setObjectName(u"ImageAugmentationButton")
+        self.ImageAugmentationButton.setGeometry(QRect(30, 70, 171, 41))
         self.pushButton_2 = QPushButton(self.centralwidget)
         self.pushButton_2.setObjectName(u"pushButton_2")
         self.pushButton_2.setGeometry(QRect(30, 120, 171, 41))
@@ -71,7 +71,7 @@ class Ui_MainWindow(object):
         self.textEdit_2.setGeometry(QRect(230, 190, 171, 131))
         MainWindow.setCentralWidget(self.centralwidget)
         self.AddImageButton.raise_()
-        self.ImageGalleryButton.raise_()
+        self.ImageAugmentationButton.raise_()
         self.pushButton_2.raise_()
         self.pushButton_3.raise_()
         self.pushButton_4.raise_()
@@ -91,8 +91,8 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.AddImageButton.setText(QCoreApplication.translate("MainWindow", u"Add New Image", None))
-        self.ImageGalleryButton.setText(QCoreApplication.translate("MainWindow", u"Image Gallery", None))
+        self.AddImageButton.setText(QCoreApplication.translate("MainWindow", u"Image Collector", None))
+        self.ImageAugmentationButton.setText(QCoreApplication.translate("MainWindow", u"Image Augmentation", None))
         self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"Coin Catalog", None))
         self.pushButton_3.setText(QCoreApplication.translate("MainWindow", u"Model Training", None))
         self.pushButton_4.setText(QCoreApplication.translate("MainWindow", u"Model Configuration", None))

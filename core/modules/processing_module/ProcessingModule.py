@@ -2,6 +2,7 @@ from PySide6.QtCore import QObject, QThread, QPoint
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
+import imgaug.augmenters as iaa
 from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
@@ -12,8 +13,9 @@ import numpy as np
 
 from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary import RemoveBackgroundSliderDictionary
 from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest, \
-    RemoveBackgroundRequest, RemoveBackgroundVerticesRequest
+    RemoveBackgroundRequest, RemoveBackgroundVerticesRequest, AugmentedImageListRequest
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
+from core.utilities.helper import cv2_to_qimage, qimage_to_cv2, remove_background, transparent_to_hue
 
 
 class ProcessingModule(QObject):
@@ -41,7 +43,8 @@ class ProcessingModule(QObject):
             GrayscalePictureRequest: self.handle_grayscale_picture,
             DoNothingRequest: self.handle_do_nothing,
             RemoveBackgroundRequest: self.handle_remove_background,
-            RemoveBackgroundVerticesRequest: self.handle_remove_background_vertices
+            RemoveBackgroundVerticesRequest: self.handle_remove_background_vertices,
+            AugmentedImageListRequest: self.handle_augmented_image_list_request
         }
 
         handler = request_handlers.get(type(request), None)
@@ -59,22 +62,22 @@ class ProcessingModule(QObject):
             ProcessedImageResponse(image=request.image, source=Modules.PROCESSING_MODULE, destination=request.source))
 
     def handle_remove_background(self, request: RemoveBackgroundRequest):
-        image = self.qimage_to_cv2(request.picture)
+        image = qimage_to_cv2(request.picture)
         params: dict = request.params
 
         processed = self.process(image, params)
         contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         # print(' '.join(str(*array[0]) for array in contours)+"\n")
 
-        img_no_bg = self.remove_background(image, contours)
-        qimage_result = self.cv2_to_qimage(img_no_bg)
+        img_no_bg = remove_background(image, contours)
+        qimage_result = cv2_to_qimage(img_no_bg)
 
         self.qt_signals.processing_module_request.emit(
             ProcessedImageResponse(image=qimage_result, mask=contours, source=Modules.PROCESSING_MODULE, destination=request.source))
 
     def handle_remove_background_vertices(self, request: RemoveBackgroundVerticesRequest):
         # Convert QImage to OpenCV image
-        image = self.qimage_to_cv2(request.picture)
+        image = qimage_to_cv2(request.picture)
 
         # Get the list of QPoint objects
         vertices: list[QPoint] = request.qpoint_vertices
@@ -95,7 +98,7 @@ class ProcessingModule(QObject):
         img_with_alpha[mask == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
 
         # Convert the resulting image back to QImage
-        qimage_result = self.cv2_to_qimage(img_with_alpha)
+        qimage_result = cv2_to_qimage(img_with_alpha)
 
         # Emit the processed result
         self.qt_signals.processing_module_request.emit(
@@ -103,71 +106,39 @@ class ProcessingModule(QObject):
                                    destination=request.source)
         )
 
-    def qimage_to_cv2(self, qimage):
-        width = qimage.width()
-        height = qimage.height()
+    def handle_augmented_image_list_request(self, request: AugmentedImageListRequest):
+        request.image.save("augmented_image_catalog\\input.png")
+        image_np: QImage = qimage_to_cv2(request.image.convertToFormat(QImage.Format_RGBA8888))
 
-        # Check the format of the QImage to determine if it has an alpha channel
-        if qimage.format() == QImage.Format_RGBA8888:
-            channels = 4  # RGBA
-        else:
-            channels = 3  # RGB
+        seq = iaa.Sequential([
+            iaa.Affine(rotate=30, scale=1.2),  # Rotate by 30 degrees and scale by 1.2x
+            iaa.PiecewiseAffine(scale=(0.01, 0.05)),  # Apply local distortions
+            iaa.GaussianBlur(sigma=(2.5, 5.5))  # Apply Gaussian blur with a sigma between 0.5 and 1.5
+        ])
+        noise = iaa.Sequential([
+            iaa.AdditiveGaussianNoise(scale=0.5 * 255),  # Add Gaussian noise
+        ])
 
-        # Get the pointer to the data and reshape it based on the number of channels
-        ptr = qimage.bits()
-        arr = np.array(ptr).reshape((height, width, channels))
+        # Create a deterministic augmentation from the sequence
+        deterministic_seq = seq.to_deterministic()
+        deterministic_noise = noise.to_deterministic()
 
-        if channels == 4:
-            return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGRA)  # Keep the alpha channel
-        else:
-            return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
+        for i in range(10):
+            hue_image_np = transparent_to_hue(image_np)
+            augmented_image_np = deterministic_seq.augment_image(image_np)
+            augmented_image_np = deterministic_noise.augment_image(augmented_image_np)
+            augmented_hue_image_np = deterministic_seq.augment_image(hue_image_np)
 
-    def cv2_to_qimage(self, cv_img):
-        # Ensure that the image is contiguous in memory
-        cv_img = np.ascontiguousarray(cv_img)
+            hue_image: QImage = cv2_to_qimage(hue_image_np)
+            augmented_image: QImage = cv2_to_qimage(augmented_image_np)
+            augmented_hue_image: QImage = cv2_to_qimage(augmented_hue_image_np)
 
-        # Extract height, width, and number of channels from the image
-        height, width, channels = cv_img.shape
-        bytes_per_line = channels * width
+            augmented_image = QPixmap.fromImage(augmented_image)
+            augmented_hue_image = QPixmap.fromImage(augmented_hue_image)
 
-        # Choose the appropriate QImage format based on the number of channels
-        if channels == 4:  # BGRA to RGBA
-            qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
-        else:
-            qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            augmented_image.save(f"augmented_image_catalog\\augmented\\{i}.png")
+            augmented_hue_image.save(f"augmented_image_catalog\\hue\\{i}.png")
 
-        return qimage
-
-    def convert_pixmap_to_grayscale(self, pixmap: QPixmap):
-        # Step 1: Convert QPixmap to QImage
-        image = pixmap.toImage()
-
-        # Step 2: Convert QImage to grayscale (QImage.Format_Grayscale8)
-        grayscale_image = image.convertToFormat(QImage.Format_Grayscale8)
-
-        # Step 3: Convert the grayscale QImage back to QPixmap
-        grayscale_pixmap = QPixmap.fromImage(grayscale_image)
-
-        return grayscale_pixmap
-
-    def QPixmapToNumpy(self, pixmap: QPixmap):
-        ## Get the size of the current pixmap
-        size = pixmap.size()
-        h = size.width()
-        w = size.height()
-
-        ## Get the QImage Item and convert it to a byte string
-        qimg = pixmap.toImage()
-        byte_str = qimg.bits().tobytes()
-
-        ## Using the np.frombuffer function to convert the byte string into an np array
-        img = np.frombuffer(byte_str, dtype=np.uint8).reshape((w, h, 4))
-
-        return img
-
-    def NumpyToQImage(self, data) -> QImage:
-        height, width = data.shape
-        return QImage(data, width, height, QImage.Format_Grayscale8)
 
     def process(self, img, params: ContourDetectionSettings):
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -178,21 +149,4 @@ class ProcessingModule(QObject):
         img_erode = cv2.erode(img_dilate, np.ones((params.erode_kernel_1, params.erode_kernel_2)), iterations=params.erode_iteration)
         return img_erode
 
-    def remove_background(self, img, contours):
-        # Create a mask for the background (single channel)
-        mask = np.zeros_like(img[:, :, 0])
 
-        if contours:
-            cnt = max(contours, key=cv2.contourArea)  # Find the largest contour
-            cv2.drawContours(mask, [cv2.convexHull(cnt)], -1, 255, thickness=cv2.FILLED)  # Fill the contour
-
-        # Convert the mask to a 4-channel version (for RGBA)
-        mask_alpha = cv2.merge([mask, mask, mask, mask])
-
-        # Create a transparent image
-        img_with_alpha = cv2.cvtColor(img, cv2.COLOR_RGB2BGRA)
-
-        # Set background pixels to transparent where the mask is zero
-        img_with_alpha[mask_alpha[:, :, 3] == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
-
-        return img_with_alpha

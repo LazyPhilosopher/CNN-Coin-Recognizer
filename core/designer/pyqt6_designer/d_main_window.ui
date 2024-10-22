@@ -42,10 +42,10 @@
      <locale language="English" country="UnitedStates"/>
     </property>
     <property name="text">
-     <string>Add New Image</string>
+     <string>Image Collector</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="ImageGalleryButton">
+   <widget class="QPushButton" name="ImageAugmentationButton">
     <property name="geometry">
      <rect>
       <x>30</x>
@@ -55,7 +55,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Image Gallery</string>
+     <string>Image Augmentation</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_2">
@@ -157,7 +157,7 @@
     </property>
    </widget>
    <zorder>AddImageButton</zorder>
-   <zorder>ImageGalleryButton</zorder>
+   <zorder>ImageAugmentationButton</zorder>
    <zorder>pushButton_2</zorder>
    <zorder>pushButton_3</zorder>
    <zorder>pushButton_4</zorder>

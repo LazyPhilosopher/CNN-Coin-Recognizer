@@ -46,3 +46,11 @@ class RemoveBackgroundVerticesRequest(MessageBase):
         self.qpoint_vertices = qpoint_vertices
         self.source = source
         self.destination = destination
+
+
+class AugmentedImageListRequest(MessageBase):
+    def __init__(self,  image: QImage, source=None, destination=None):
+        super().__init__()
+        self.image = image
+        self.source = source
+        self.destination = destination
