@@ -3,8 +3,9 @@ import os
 
 import cv2
 import numpy as np
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QImage
-from PySide6.QtWidgets import QMessageBox, QApplication, QWidget
+from PySide6.QtWidgets import QMessageBox, QApplication, QWidget, QDialog, QLabel, QPushButton, QVBoxLayout
 
 import win32com.client
 
@@ -116,7 +117,7 @@ def remove_background(img, contours):
     mask_alpha = cv2.merge([mask, mask, mask, mask])
 
     # Create a transparent image
-    img_with_alpha = cv2.cvtColor(img, cv2.COLOR_RGB2BGRA)
+    img_with_alpha = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
 
     # Set background pixels to transparent where the mask is zero
     img_with_alpha[mask_alpha[:, :, 3] == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
@@ -134,8 +135,11 @@ def cv2_to_qimage(cv_img):
 
     # Choose the appropriate QImage format based on the number of channels
     if channels == 4:  # BGRA to RGBA
+        cv_img = cv2.cvtColor(cv_img, cv2.COLOR_BGRA2RGBA)
         qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
+
     else:
+        cv_img = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
         qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGB888)
 
     return qimage
@@ -145,20 +149,64 @@ def qimage_to_cv2(qimage):
     width = qimage.width()
     height = qimage.height()
 
-    # Check the format of the QImage to determine if it has an alpha channel
-    if qimage.format() == QImage.Format_RGBA8888:
-        channels = 4  # RGBA
-    else:
-        channels = 3  # RGB
+    # Check the format of the QImage
+    format = qimage.format()
 
-    # Get the pointer to the data and reshape it based on the number of channels
-    ptr = qimage.bits()
-    arr = np.array(ptr).reshape((height, width, channels))
+    # Handle images with an alpha channel (transparency)
+    if format in (QImage.Format_ARGB32, QImage.Format_ARGB32_Premultiplied, QImage.Format_RGBA8888):
+        channels = 4
+        ptr = qimage.bits()
+        arr = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
+        return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGRA)  # Convert RGBA to OpenCV's BGRA format
 
-    if channels == 4:
-        return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGRA)  # Keep the alpha channel
+    # Handle images without an alpha channel
+    elif format == QImage.Format_RGB32:
+        channels = 4  # QImage stores RGB32 as ARGB (premultiplied alpha)
+        ptr = qimage.bits()
+        arr = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
+        return cv2.cvtColor(arr, cv2.COLOR_BGRA2BGR)  # Drop alpha channel, convert to BGR
+
+    elif format in (QImage.Format_RGB888, QImage.Format_Indexed8):
+        channels = 3
+        ptr = qimage.bits()
+        arr = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
+        return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Convert RGB to OpenCV's BGR format
+
     else:
-        return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
+        raise ValueError(f"Unsupported QImage format: {format}")
+
+
+def show_image_popup(image):
+    """
+    Display the given QImage in a popup window.
+
+    Args:
+    image (QImage): The QImage to display in the popup.
+    """
+    # Create a dialog window
+    dialog = QDialog()
+    dialog.setWindowTitle("Image Preview")
+    dialog.setFixedSize(image.width(), image.height())
+
+    # Convert QImage to QPixmap for display
+    pixmap = QPixmap.fromImage(image)
+
+    # Create a label to display the image
+    label = QLabel(dialog)
+    label.setPixmap(pixmap)
+    label.setAlignment(Qt.AlignCenter)
+
+    # Add a button to close the dialog
+    close_button = QPushButton("Close", dialog)
+    close_button.clicked.connect(dialog.accept)
+
+    # Set layout for the dialog
+    layout = QVBoxLayout(dialog)
+    layout.addWidget(label)
+    layout.addWidget(close_button)
+
+    # Show the dialog
+    dialog.exec()
 
 # def on_usb_device_connected():
 #     print("A USB device has been connected.")

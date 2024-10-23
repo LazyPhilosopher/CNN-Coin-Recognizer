@@ -22,7 +22,7 @@ from core.qt_threading.messages.video_thread.Responses import CameraListResponse
 from core.designer.ImageFrame import ImageFrame
 from core.designer.pyqt6_designer.d_ImageCollector import Ui_ImageCollector
 from core.utilities.CaseInsensitiveDict import CaseInsensitiveDict
-from core.utilities.helper import show_confirmation_dialog
+from core.utilities.helper import show_confirmation_dialog, qimage_to_cv2
 
 
 class ImageCollector(QMainWindow, Ui_ImageCollector):
@@ -118,7 +118,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             handler(request)
 
     def handle_catalog_dict_response(self, request: CatalogDictResponse):
-        # print(f"[ImageGalleryWindow]: {request.catalog}")
+        print(f"[ImageGalleryWindow]: {request.catalog}")
 
         self.catalog = request.catalog
         self.reset_dropboxes()
@@ -141,6 +141,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         if self.tabWidget.tabText(current_tab_index) == "Gallery":
             pic_with_background: QImage = request.pic_with_background
             pic_no_background: QImage = request.pic_no_background
+            pic_no_background = pic_no_background.convertToFormat(QImage.Format_RGB888)
 
             self.uncropped_image = pic_with_background
             self.cropped_picture = pic_no_background

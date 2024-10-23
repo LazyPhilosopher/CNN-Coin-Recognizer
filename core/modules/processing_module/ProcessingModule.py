@@ -1,8 +1,13 @@
+import os
+import uuid
+
 from PySide6.QtCore import QObject, QThread, QPoint
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
 import imgaug.augmenters as iaa
+
+from core.modules.catalog.Coin import Coin
 from core.modules.catalog.ContourDetectionSettings import ContourDetectionSettings
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import MessageBase, Modules
@@ -15,7 +20,7 @@ from core.qt_threading.messages.processing_module.RemoveBackgroundDictionary imp
 from core.qt_threading.messages.processing_module.Requests import GrayscalePictureRequest, DoNothingRequest, \
     RemoveBackgroundRequest, RemoveBackgroundVerticesRequest, AugmentedImageListRequest
 from core.qt_threading.messages.processing_module.Responses import ProcessedImageResponse
-from core.utilities.helper import cv2_to_qimage, qimage_to_cv2, remove_background, transparent_to_hue
+from core.utilities.helper import cv2_to_qimage, qimage_to_cv2, remove_background, transparent_to_hue, show_image_popup
 
 
 class ProcessingModule(QObject):
@@ -92,7 +97,7 @@ class ProcessingModule(QObject):
         cv2.fillPoly(mask, [points], 255)  # The polygon is filled with white (255)
 
         # Convert the image to BGRA format (4 channels) to include transparency
-        img_with_alpha = cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
+        img_with_alpha = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
 
         # Set pixels outside the polygon to transparent (0 alpha)
         img_with_alpha[mask == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
@@ -107,37 +112,57 @@ class ProcessingModule(QObject):
         )
 
     def handle_augmented_image_list_request(self, request: AugmentedImageListRequest):
-        request.image.save("augmented_image_catalog\\input.png")
-        image_np: QImage = qimage_to_cv2(request.image.convertToFormat(QImage.Format_RGBA8888))
+        uncropped_image_np = qimage_to_cv2(request.uncropped_image)
+        cropped_image_np = qimage_to_cv2(request.cropped_image)
+
+        os.makedirs(os.path.join(f"{request.destination_folder}\\uncropped-augmented"), exist_ok=True)
+        os.makedirs(os.path.join(f"{request.destination_folder}\\cropped-augmented"), exist_ok=True)
+        os.makedirs(os.path.join(f"{request.destination_folder}\\hue"), exist_ok=True)
 
         seq = iaa.Sequential([
-            iaa.Affine(rotate=30, scale=1.2),  # Rotate by 30 degrees and scale by 1.2x
-            iaa.PiecewiseAffine(scale=(0.01, 0.05)),  # Apply local distortions
-            iaa.GaussianBlur(sigma=(2.5, 5.5))  # Apply Gaussian blur with a sigma between 0.5 and 1.5
+            # Rotate randomly between -30 and +30 degrees
+            iaa.Affine(rotate=(-30, 30), scale=(0.5, 1.2)),  # Scale between 0.5x and 1.2x
+            # Apply local distortions with random scale between 0.001 and 0.005
+            iaa.PiecewiseAffine(scale=(0.001, 0.005)),
+            # Apply Gaussian blur with a random sigma between 0.4 and 0.5
+            iaa.GaussianBlur(sigma=(0.1, 0.5))
         ])
+
         noise = iaa.Sequential([
-            iaa.AdditiveGaussianNoise(scale=0.5 * 255),  # Add Gaussian noise
+            # Add Gaussian noise with random scale between 0 and 0.05*255
+            iaa.AdditiveGaussianNoise(scale=(0, 0.05 * 255))
         ])
 
         # Create a deterministic augmentation from the sequence
-        deterministic_seq = seq.to_deterministic()
-        deterministic_noise = noise.to_deterministic()
+        # deterministic_seq = seq.to_deterministic()
+        # deterministic_noise = noise.to_deterministic()
+
+        picture_name: str = uuid.uuid4()
 
         for i in range(10):
-            hue_image_np = transparent_to_hue(image_np)
-            augmented_image_np = deterministic_seq.augment_image(image_np)
-            augmented_image_np = deterministic_noise.augment_image(augmented_image_np)
-            augmented_hue_image_np = deterministic_seq.augment_image(hue_image_np)
 
-            hue_image: QImage = cv2_to_qimage(hue_image_np)
-            augmented_image: QImage = cv2_to_qimage(augmented_image_np)
+            full_picture_np = seq.augment_image(uncropped_image_np)
+            full_picture_np = noise.augment_image(full_picture_np)
+            full_image: QImage = cv2_to_qimage(full_picture_np)
+            # full_image = full_image.convertToFormat(QImage.Format_RGB888)
+            full_pixmap: QPixmap = QPixmap.fromImage(full_image)
+            full_pixmap.save(f"{request.destination_folder}\\uncropped-augmented\\{picture_name}_{i}.png")
+
+            cropped_picture_np = seq.augment_image(cropped_image_np)
+            cropped_picture_np = noise.augment_image(cropped_picture_np)
+            cropped_image: QImage = cv2_to_qimage(cropped_picture_np)
+            # cropped_image = cropped_image.convertToFormat(QImage.Format_RGB888)
+            cropped_pixmap: QPixmap = QPixmap.fromImage(cropped_image)
+            cropped_pixmap.save(f"{request.destination_folder}\\cropped-augmented\\{picture_name}_{i}.png")
+
+            hue_image_np = transparent_to_hue(cropped_image_np)
+            augmented_hue_image_np = seq.augment_image(hue_image_np)
             augmented_hue_image: QImage = cv2_to_qimage(augmented_hue_image_np)
+            # augmented_hue_image = augmented_hue_image.convertToFormat(QImage.Format_RGB888)
+            augmented_hue_pixmap = QPixmap.fromImage(augmented_hue_image)
+            augmented_hue_pixmap.save(f"{request.destination_folder}\\hue\\{picture_name}_{i}.png")
 
-            augmented_image = QPixmap.fromImage(augmented_image)
-            augmented_hue_image = QPixmap.fromImage(augmented_hue_image)
-
-            augmented_image.save(f"augmented_image_catalog\\augmented\\{i}.png")
-            augmented_hue_image.save(f"augmented_image_catalog\\hue\\{i}.png")
+        print("done")
 
 
     def process(self, img, params: ContourDetectionSettings):

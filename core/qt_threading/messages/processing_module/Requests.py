@@ -49,8 +49,10 @@ class RemoveBackgroundVerticesRequest(MessageBase):
 
 
 class AugmentedImageListRequest(MessageBase):
-    def __init__(self,  image: QImage, source=None, destination=None):
+    def __init__(self, uncropped_image: QImage, cropped_image: QImage, destination_folder: str, source=None, destination=None):
         super().__init__()
-        self.image = image
+        self.uncropped_image = uncropped_image
+        self.cropped_image = cropped_image
+        self.destination_folder = destination_folder
         self.source = source
         self.destination = destination
