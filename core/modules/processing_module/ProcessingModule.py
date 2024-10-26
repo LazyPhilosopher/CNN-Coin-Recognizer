@@ -29,6 +29,7 @@ class ProcessingModule(QObject):
         super().__init__()
 
         self.is_running = False
+        self.is_processing = False
         self.main_thread = QThread()
         self.qt_signals = CommonSignals()
         self.qt_signals.processing_module_request.connect(self.handle_request)
@@ -54,7 +55,12 @@ class ProcessingModule(QObject):
 
         handler = request_handlers.get(type(request), None)
         if handler:
+            if self.is_processing:
+                return
+
+            self.is_processing = True
             handler(request)
+            self.is_processing = False
 
     def handle_grayscale_picture(self, request: GrayscalePictureRequest):
         grayscale_image = request.image.convertToFormat(QImage.Format_Grayscale8)
@@ -97,7 +103,7 @@ class ProcessingModule(QObject):
         cv2.fillPoly(mask, [points], 255)  # The polygon is filled with white (255)
 
         # Convert the image to BGRA format (4 channels) to include transparency
-        img_with_alpha = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+        img_with_alpha = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
 
         # Set pixels outside the polygon to transparent (0 alpha)
         img_with_alpha[mask == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
@@ -120,10 +126,11 @@ class ProcessingModule(QObject):
         os.makedirs(os.path.join(f"{request.destination_folder}\\hue"), exist_ok=True)
 
         seq = iaa.Sequential([
-            # Rotate randomly between -30 and +30 degrees
-            iaa.Affine(rotate=(-30, 30), scale=(0.5, 1.2)),  # Scale between 0.5x and 1.2x
+            # Rotate randomly between -180 and +180 degrees
+            iaa.Affine(rotate=(-180, 180)),
             # Apply local distortions with random scale between 0.001 and 0.005
-            iaa.PiecewiseAffine(scale=(0.001, 0.005)),
+            iaa.PiecewiseAffine(scale=(0.005, 0.02)),
+            iaa.Affine(rotate=(-180, 180), scale=(0.25, 1.2)),  # Scale between 0.5x and 1.2x
             # Apply Gaussian blur with a random sigma between 0.4 and 0.5
             iaa.GaussianBlur(sigma=(0.1, 0.5))
         ])

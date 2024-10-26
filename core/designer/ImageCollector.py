@@ -121,13 +121,13 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         print(f"[ImageGalleryWindow]: {request.catalog}")
 
         self.catalog = request.catalog
-        self.reset_dropboxes()
+
         try:
             # self.update_active_coin()
             # print("self.pick_coin_from_dropboxes(self.active_coin)")
             self.pick_coin_from_dropboxes(self.active_coin)
         except (AttributeError, KeyError):
-            pass
+            self.reset_dropboxes()
         self.update_active_coin()
         self.current_camera_settings = self.active_coin.contour_detection_params
         self.set_background_removal_slider_values()
@@ -141,16 +141,17 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         if self.tabWidget.tabText(current_tab_index) == "Gallery":
             pic_with_background: QImage = request.pic_with_background
             pic_no_background: QImage = request.pic_no_background
-            pic_no_background = pic_no_background.convertToFormat(QImage.Format_RGB888)
 
             self.uncropped_image = pic_with_background
             self.cropped_picture = pic_no_background
 
             if pic_no_background is not None:
+                pic_no_background = pic_no_background.convertToFormat(QImage.Format_RGB888)
                 self.video_frame.set_front_image(pic_no_background)
                 self.redraw_coin_contour_checkbox.setChecked(False)
                 self.redraw_coin_contour_checkbox.setEnabled(True)
             else:
+                pic_with_background = pic_with_background.convertToFormat(QImage.Format_RGB888)
                 self.video_frame.set_front_image(pic_with_background)
                 self.redraw_coin_contour_checkbox.setChecked(True)
                 self.redraw_coin_contour_checkbox.setEnabled(False)
@@ -340,7 +341,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         try:
             _ = self.catalog[coin.year][coin.country][coin.name]
         except:
-            return False
+            raise KeyError
 
         self.set_year_dropbox_items()
         year_id = self.coin_catalog_year_dropbox.findText(coin.year)

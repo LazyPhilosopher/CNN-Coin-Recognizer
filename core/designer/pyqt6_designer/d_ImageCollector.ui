@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>870</width>
-    <height>630</height>
+    <width>1330</width>
+    <height>628</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>630</x>
+      <x>1090</x>
       <y>445</y>
       <width>49</width>
       <height>16</height>
@@ -30,7 +30,7 @@
    <widget class="Line" name="line_2">
     <property name="geometry">
      <rect>
-      <x>610</x>
+      <x>1070</x>
       <y>5</y>
       <width>16</width>
       <height>601</height>
@@ -46,7 +46,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>630</x>
+      <x>1090</x>
       <y>5</y>
       <width>231</width>
       <height>401</height>
@@ -831,7 +831,7 @@
    <widget class="QComboBox" name="coin_catalog_year_dropbox">
     <property name="geometry">
      <rect>
-      <x>700</x>
+      <x>1160</x>
       <y>415</y>
       <width>161</width>
       <height>22</height>
@@ -842,8 +842,8 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>5</y>
-      <width>600</width>
+      <y>0</y>
+      <width>1060</width>
       <height>600</height>
      </rect>
     </property>
@@ -860,7 +860,7 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>630</x>
+      <x>1090</x>
       <y>475</y>
       <width>61</width>
       <height>16</height>
@@ -873,7 +873,7 @@
    <widget class="QPlainTextEdit" name="plainTextEdit">
     <property name="geometry">
      <rect>
-      <x>630</x>
+      <x>1090</x>
       <y>500</y>
       <width>231</width>
       <height>101</height>
@@ -889,7 +889,7 @@
    <widget class="QComboBox" name="coin_catalog_country_dropbox">
     <property name="geometry">
      <rect>
-      <x>700</x>
+      <x>1160</x>
       <y>445</y>
       <width>161</width>
       <height>22</height>
@@ -899,7 +899,7 @@
    <widget class="QComboBox" name="coin_catalog_name_dropbox">
     <property name="geometry">
      <rect>
-      <x>700</x>
+      <x>1160</x>
       <y>475</y>
       <width>161</width>
       <height>22</height>
@@ -909,7 +909,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>630</x>
+      <x>1090</x>
       <y>420</y>
       <width>31</width>
       <height>16</height>

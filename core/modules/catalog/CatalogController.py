@@ -198,15 +198,19 @@ class CoinCatalogHandler(QObject):
                                 #     coin_attributes["pictures"][picture_file]["cropped_version"] = None
 
                             # Add PNGs present in coin directory to pictures
-                            for filename in os.listdir(os.path.join(self.catalog_path, coin.coin_dir_path())):
-                                if filename.lower().endswith('.png') and filename.lower() not in coin.pictures:
-                                    coin.add_picture(picture_file=picture_file.lower())
+                            coin_dir_path = os.path.join(self.catalog_path, coin.coin_dir_path())
+                            if os.path.exists(coin_dir_path) and os.path.isdir(coin_dir_path):
+                                for filename in os.listdir(coin_dir_path):
+                                    if filename.lower().endswith('.png') and filename.lower() not in coin.pictures:
+                                        coin.add_picture(picture_file=picture_file.lower())
 
-                                    directory_cropped_pic: str = os.path.join(self.catalog_path, "cropped",
-                                                                              coin.coin_dir_path(), picture_file)
-                                    if os.path.exists(directory_cropped_pic):
-                                        coin_attributes["pictures"][picture_file][
-                                            "cropped_version"] = directory_cropped_pic
+                                        directory_cropped_pic: str = os.path.join(self.catalog_path, "cropped",
+                                                                                  coin.coin_dir_path(), picture_file)
+                                        if os.path.exists(directory_cropped_pic):
+                                            coin_attributes["pictures"][picture_file][
+                                                "cropped_version"] = directory_cropped_pic
+                            else:
+                                os.makedirs(coin_dir_path)
 
                             # coin.pictures = coin_attributes["pictures"]
                             coin.coin_params = coin_attributes["coin_params"]

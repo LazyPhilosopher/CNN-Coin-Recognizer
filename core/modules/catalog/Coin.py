@@ -15,7 +15,7 @@ class Coin:
                  name: str,
                  year: str = None,
                  country: str = None,
-                 contour_detection_params: ContourDetectionSettings | None = None):
+                 contour_detection_params: ContourDetectionSettings | None = ContourDetectionSettings()):
         self.name = name
         self.year = year
         self.country = country

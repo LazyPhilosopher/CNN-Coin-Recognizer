@@ -56,7 +56,7 @@ class VideoStream(QObject):
         self.process = QProcess(self)
         self.is_running = True
         self.cv2_stream = cv2.VideoCapture(0)  # Use the first camera (or provide a video file)
-        self.cv2_stream.set(cv2.CAP_PROP_FPS, 30)
+        self.cv2_stream.set(cv2.CAP_PROP_FPS, 15)
 
         self._camera_list_refresh()
 
