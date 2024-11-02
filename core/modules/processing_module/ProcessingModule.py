@@ -126,48 +126,55 @@ class ProcessingModule(QObject):
         os.makedirs(os.path.join(f"{request.destination_folder}\\hue"), exist_ok=True)
 
         seq = iaa.Sequential([
-            # Rotate randomly between -180 and +180 degrees
-            iaa.Affine(rotate=(-180, 180)),
-            # Apply local distortions with random scale between 0.001 and 0.005
+            # Apply local distortions with random scale between 0.005 and 0.02
             iaa.PiecewiseAffine(scale=(0.005, 0.02)),
-            iaa.Affine(rotate=(-180, 180), scale=(0.25, 1.2)),  # Scale between 0.5x and 1.2x
+            iaa.Affine(
+                scale={
+                    "x": (0.8, 1.2),  # Random scaling along the x-axis
+                    "y": (0.8, 1.2)  # Random scaling along the y-axis
+                },
+                rotate=(-90, 90)  # Random rotation between -90 and 90 degrees
+            ),
+            iaa.Affine(scale=(0.25, 1.2)),  # Scale between 0.5x and 1.2x
             # Apply Gaussian blur with a random sigma between 0.4 and 0.5
-            iaa.GaussianBlur(sigma=(0.1, 0.5))
+            iaa.GaussianBlur(sigma=(0, 10))
         ])
 
         noise = iaa.Sequential([
             # Add Gaussian noise with random scale between 0 and 0.05*255
-            iaa.AdditiveGaussianNoise(scale=(0, 0.05 * 255))
+            iaa.AdditiveGaussianNoise(scale=(0.1 * 255, 0.5 * 255))
         ])
 
-        # Create a deterministic augmentation from the sequence
-        # deterministic_seq = seq.to_deterministic()
-        # deterministic_noise = noise.to_deterministic()
+        # picture_name: str = uuid.uuid4()
 
-        picture_name: str = uuid.uuid4()
+        for i in range(100):
+            # Create a deterministic augmentation from the sequence
+            deterministic_seq = seq.to_deterministic()
+            deterministic_noise = noise.to_deterministic()
 
-        for i in range(10):
+            if not os.path.exists(path := f"{request.destination_folder}\\uncropped-augmented\\{i}.png"):
+                full_picture_np = deterministic_seq.augment_image(uncropped_image_np)
+                full_picture_np = deterministic_noise.augment_image(full_picture_np)
+                full_image: QImage = cv2_to_qimage(full_picture_np)
+                # full_image = full_image.convertToFormat(QImage.Format_RGB888)
+                full_pixmap: QPixmap = QPixmap.fromImage(full_image)
+                full_pixmap.save(path)
 
-            full_picture_np = seq.augment_image(uncropped_image_np)
-            full_picture_np = noise.augment_image(full_picture_np)
-            full_image: QImage = cv2_to_qimage(full_picture_np)
-            # full_image = full_image.convertToFormat(QImage.Format_RGB888)
-            full_pixmap: QPixmap = QPixmap.fromImage(full_image)
-            full_pixmap.save(f"{request.destination_folder}\\uncropped-augmented\\{picture_name}_{i}.png")
+            if not os.path.exists(path := f"{request.destination_folder}\\cropped-augmented\\{i}.png"):
+                cropped_picture_np = deterministic_seq.augment_image(cropped_image_np)
+                cropped_picture_np = deterministic_noise.augment_image(cropped_picture_np)
+                cropped_image: QImage = cv2_to_qimage(cropped_picture_np)
+                # cropped_image = cropped_image.convertToFormat(QImage.Format_RGB888)
+                cropped_pixmap: QPixmap = QPixmap.fromImage(cropped_image)
+                cropped_pixmap.save(path)
 
-            cropped_picture_np = seq.augment_image(cropped_image_np)
-            cropped_picture_np = noise.augment_image(cropped_picture_np)
-            cropped_image: QImage = cv2_to_qimage(cropped_picture_np)
-            # cropped_image = cropped_image.convertToFormat(QImage.Format_RGB888)
-            cropped_pixmap: QPixmap = QPixmap.fromImage(cropped_image)
-            cropped_pixmap.save(f"{request.destination_folder}\\cropped-augmented\\{picture_name}_{i}.png")
-
-            hue_image_np = transparent_to_hue(cropped_image_np)
-            augmented_hue_image_np = seq.augment_image(hue_image_np)
-            augmented_hue_image: QImage = cv2_to_qimage(augmented_hue_image_np)
-            # augmented_hue_image = augmented_hue_image.convertToFormat(QImage.Format_RGB888)
-            augmented_hue_pixmap = QPixmap.fromImage(augmented_hue_image)
-            augmented_hue_pixmap.save(f"{request.destination_folder}\\hue\\{picture_name}_{i}.png")
+            if not os.path.exists(path := f"{request.destination_folder}\\hue\\{i}.png"):
+                hue_image_np = transparent_to_hue(cropped_image_np)
+                augmented_hue_image_np = deterministic_seq.augment_image(hue_image_np)
+                augmented_hue_image: QImage = cv2_to_qimage(augmented_hue_image_np)
+                # augmented_hue_image = augmented_hue_image.convertToFormat(QImage.Format_RGB888)
+                augmented_hue_pixmap = QPixmap.fromImage(augmented_hue_image)
+                augmented_hue_pixmap.save(path)
 
         print("done")
 

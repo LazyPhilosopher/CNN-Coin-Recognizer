@@ -28,7 +28,10 @@ class CoinCatalogHandler(QObject):
         project_root = 'D:\\Projects\\bachelor_thesis\\OpenCV2-Coin-Recognizer'
         self.catalog_path = os.path.join(project_root, "coin_catalog")
         self.coin_catalog_dict: CaseInsensitiveDict = CaseInsensitiveDict()
+        self.global_params: dict | None = None
         self.current_picture: QPixmap | None = None
+
+        self.catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
 
         self.is_running = False
         self.main_thread = QThread()
@@ -42,7 +45,7 @@ class CoinCatalogHandler(QObject):
         self.main_thread.start()
 
     def worker(self):
-        self.parse_main_catalog()
+        self.init()
 
         # while self.is_running:
         #     QApplication.processEvents()
@@ -137,12 +140,27 @@ class CoinCatalogHandler(QObject):
                                        data=self.coin_catalog_dict)
         self.qt_signals.catalog_handler_response.emit(response)
 
-    def parse_main_catalog(self) -> bool:
-        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME + ".json")
-        coin_catalog_dict: CaseInsensitiveDict = CaseInsensitiveDict()
-        with open(catalog_dict_path, ) as catalog_file:
+    def init(self):
+        initialized = False
 
-            file_dict = None
+        if os.path.exists(self.catalog_dict_path) and os.path.isfile(self.catalog_dict_path):
+            initialized = self.parse_existing_catalog()
+
+        if not initialized:
+            initialized = self.init_empty_catalog()
+
+        if not initialized:
+            raise Exception
+
+    def init_empty_catalog(self):
+        self.coin_catalog_dict: CaseInsensitiveDict = CaseInsensitiveDict()
+        is_written = self.write_catalog()
+        return is_written
+
+    def parse_existing_catalog(self):
+        coin_catalog_dict: CaseInsensitiveDict = CaseInsensitiveDict()
+        with open(self.catalog_dict_path, ) as catalog_file:
+
             try:
                 file_dict = json.load(catalog_file)
             except json.decoder.JSONDecodeError as ex:
@@ -202,12 +220,12 @@ class CoinCatalogHandler(QObject):
                             if os.path.exists(coin_dir_path) and os.path.isdir(coin_dir_path):
                                 for filename in os.listdir(coin_dir_path):
                                     if filename.lower().endswith('.png') and filename.lower() not in coin.pictures:
-                                        coin.add_picture(picture_file=picture_file.lower())
+                                        coin.add_picture(picture_file=filename.lower())
 
                                         directory_cropped_pic: str = os.path.join(self.catalog_path, "cropped",
-                                                                                  coin.coin_dir_path(), picture_file)
+                                                                                  coin.coin_dir_path(), filename)
                                         if os.path.exists(directory_cropped_pic):
-                                            coin_attributes["pictures"][picture_file][
+                                            coin_attributes["pictures"][filename][
                                                 "cropped_version"] = directory_cropped_pic
                             else:
                                 os.makedirs(coin_dir_path)
@@ -223,7 +241,7 @@ class CoinCatalogHandler(QObject):
                         coin_catalog_dict[year][country][coin.name] = coin
 
         self.coin_catalog_dict = coin_catalog_dict
-        self.write_catalog()
+        # self.write_catalog()
         return True
 
     def add_coin_to_catalog(self, coin: Coin):
@@ -343,9 +361,11 @@ class CoinCatalogHandler(QObject):
         self.write_catalog()
 
     def write_catalog(self) -> bool:
-        catalog_dict_path = os.path.join(self.catalog_path, CATALOG_FILE_NAME+".json")
+        if not os.path.exists(dir_path := os.path.join(self.catalog_path, CATALOG_FILE_NAME)):
+            os.makedirs(dir_path)
+
         try:
-            with open(catalog_dict_path, 'w') as file:
+            with open(self.catalog_dict_path, 'w') as file:
                 dictionary: dict = {"params": self.global_params, "coins": {"years": self.coin_catalog_dict}}
                 json.dump(dictionary, file, cls=CatalogEncoder, indent=4)
                 # TODO: custom serializer

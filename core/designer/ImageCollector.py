@@ -98,7 +98,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             self.gallery_erode_iter_slider
         ]
         for slider in self.sliders:
-            slider.valueChanged.connect(self.update_coin_camera_settings)
+            slider.sliderReleased.connect(self.update_coin_camera_settings)
 
         self.video_frame.set_background_image(QImage("image1.png"))
 
@@ -129,7 +129,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         except (AttributeError, KeyError):
             self.reset_dropboxes()
         self.update_active_coin()
-        self.current_camera_settings = self.active_coin.contour_detection_params
+        self.current_camera_settings = self.active_coin.contour_detection_params if self.active_coin is not None else ContourDetectionSettings()
         self.set_background_removal_slider_values()
         # print("self.update_active_coin()")
 
@@ -220,20 +220,56 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
     def set_year_dropbox_items(self):
         self.coin_catalog_year_dropbox.blockSignals(True)
+
         self.coin_catalog_year_dropbox.clear()
-        self.coin_catalog_year_dropbox.addItems(list(self.catalog.keys()))
+        try:
+            catalog_entries = list(self.catalog.keys())
+        except KeyError:
+            catalog_entries = []
+
+        if len(catalog_entries) > 0:
+            self.coin_catalog_year_dropbox.addItems(list(self.catalog.keys()))
+            self.coin_catalog_year_dropbox.setEnabled(True)
+        else:
+            self.coin_catalog_year_dropbox.addItems(["None Defined"])
+            self.coin_catalog_year_dropbox.setEnabled(False)
+
         self.coin_catalog_year_dropbox.blockSignals(False)
 
     def set_country_dropbox_items(self, year: str):
         self.coin_catalog_country_dropbox.blockSignals(True)
+
         self.coin_catalog_country_dropbox.clear()
-        self.coin_catalog_country_dropbox.addItems(list(self.catalog[year].keys()))
+        try:
+            catalog_entries = list(self.catalog[year].keys())
+        except KeyError:
+            catalog_entries = []
+
+        if len(catalog_entries) > 0 and self.coin_catalog_year_dropbox.isEnabled():
+            self.coin_catalog_country_dropbox.addItems(list(self.catalog[year].keys()))
+            self.coin_catalog_country_dropbox.setEnabled(True)
+        else:
+            self.coin_catalog_country_dropbox.addItems(["None Defined"])
+            self.coin_catalog_country_dropbox.setEnabled(False)
+
         self.coin_catalog_country_dropbox.blockSignals(False)
 
     def set_coin_name_dropbox_items(self, year: str, country: str):
         self.coin_catalog_name_dropbox.blockSignals(True)
+
         self.coin_catalog_name_dropbox.clear()
-        self.coin_catalog_name_dropbox.addItems(self.catalog[year][country].keys())
+        try:
+            catalog_entries = list(self.catalog[year][country].keys())
+        except KeyError:
+            catalog_entries = []
+
+        if len(catalog_entries) > 0 and self.coin_catalog_year_dropbox.isEnabled() and self.coin_catalog_country_dropbox.isEnabled():
+            self.coin_catalog_name_dropbox.addItems(catalog_entries)
+            self.coin_catalog_name_dropbox.setEnabled(True)
+        else:
+            self.coin_catalog_name_dropbox.addItems(["None Defined"])
+            self.coin_catalog_name_dropbox.setEnabled(False)
+
         self.coin_catalog_name_dropbox.blockSignals(False)
 
     def reset_dropboxes(self):
@@ -330,12 +366,14 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             for slider in self.sliders:
                 slider.blockSignals(False)
 
-
     def update_active_coin(self):
-        year = self.coin_catalog_year_dropbox.currentText()
-        country = self.coin_catalog_country_dropbox.currentText()
-        name = self.coin_catalog_name_dropbox.currentText()
-        self.active_coin = self.catalog[year][country][name]
+        if self.coin_catalog_country_dropbox.isEnabled() and self.coin_catalog_year_dropbox.isEnabled() and self.coin_catalog_name_dropbox.isEnabled():
+            year = self.coin_catalog_year_dropbox.currentText()
+            country = self.coin_catalog_country_dropbox.currentText()
+            name = self.coin_catalog_name_dropbox.currentText()
+            self.active_coin = self.catalog[year][country][name]
+        else:
+            self.active_coin = None
 
     def pick_coin_from_dropboxes(self, coin: Coin):
         try:

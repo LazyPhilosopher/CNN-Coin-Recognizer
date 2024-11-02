@@ -5,6 +5,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QMainWindow, QApplication
 
 from core.designer.pyqt6_designer.d_augmentation_window import Ui_AugmentationWindow
+from core.modules.catalog.Coin import Coin
 from core.qt_threading.common_signals import CommonSignals
 from core.qt_threading.messages.MessageBase import Modules, MessageBase
 from core.qt_threading.messages.catalog_handler.Requests import CatalogDictRequest
@@ -53,6 +54,8 @@ class AugmentationWindow(QMainWindow, Ui_AugmentationWindow):
         self.coin_catalog = request.catalog
 
     def handle_request_augmented_data_button(self):
+
+
         for year, countries in self.coin_catalog.items():
             for country, coins in countries.items():
                 for coin_name, coin in coins.items():
