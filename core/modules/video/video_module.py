@@ -90,7 +90,6 @@ class VideoModule(QObject):
             cap.release()
             index += 1
         self.camera_list = [f"Camera {idx}" for idx in id_arr]
-        print(self.camera_list)
         request = CameraListResponse(camera_list=self.camera_list, source=Modules.VIDEO_STREAM)
         qt_signals.video_module_request.emit(request)
 

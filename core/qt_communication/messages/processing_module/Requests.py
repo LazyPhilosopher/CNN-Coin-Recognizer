@@ -55,3 +55,24 @@ class RemoveBackgroundRequest(MessageBase):
 #         self.destination_folder = destination_folder
 #         self.source = source
 #         self.destination = destination
+
+
+class AugmentCoinCatalogRequest(MessageBase):
+    def __init__(self,
+                 catalog_path: str,
+                 rotation: float,
+                 distortion: float,
+                 blur: float,
+                 noise: float,
+                 picture_amount: int,
+                 source=None,
+                 destination=None):
+        super().__init__()
+        self.catalog_path = catalog_path
+        self.rotation = rotation
+        self.distortion = distortion
+        self.blur = blur
+        self.noise = noise
+        self.picture_amount = picture_amount
+        self.source = source
+        self.destination = destination

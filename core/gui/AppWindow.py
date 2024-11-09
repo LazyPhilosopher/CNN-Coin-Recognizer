@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow
 
 # from core.gui.AugmentationWindow import AugmentationWindow
+from core.gui.AugmentationWindow import AugmentationWindow
 from core.gui.pyqt6_designer.d_main_window import Ui_MainWindow
 
 from core.gui.ImageCollector import ImageCollector
@@ -22,8 +23,8 @@ class AppWindow(QMainWindow, Ui_MainWindow):
         self._window.closeEvent = self._enable_central_widget
 
     def image_augmentation_button_routine(self):
-        # self._window = AugmentationWindow()
-        # self._window.show()
+        self._window = AugmentationWindow()
+        self._window.show()
         self.centralwidget.setEnabled(False)
         self._window.closeEvent = self._enable_central_widget
 

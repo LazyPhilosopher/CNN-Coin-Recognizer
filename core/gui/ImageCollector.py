@@ -138,8 +138,10 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             self.set_country_dropbox_items(None)
             self.set_coin_name_dropbox_items(None)
             self.set_coin_year_dropbox_items(None)
+            self.save_photo_button.setEnabled(True)
         except:
             self._empty_and_disable_coin_dropboxes()
+            self.save_photo_button.setEnabled(False)
 
     def _set_coin_dropbox_items(self, country: str, coin_name: str, coin_year: str):
         self.set_country_dropbox_items(country)
@@ -160,9 +162,9 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
     def _enable_coin_dropboxes(self):
         self._clear_coin_dropboxes()
-        self.coin_catalog_country_dropbox.setEnabled(False)
-        self.coin_catalog_name_dropbox.setEnabled(False)
-        self.coin_catalog_year_dropbox.setEnabled(False)
+        self.coin_catalog_country_dropbox.setEnabled(True)
+        self.coin_catalog_name_dropbox.setEnabled(True)
+        self.coin_catalog_year_dropbox.setEnabled(True)
 
         self.save_photo_button.setEnabled(True)
 
@@ -281,6 +283,10 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     # == Gallery Tab Routine ==
 
     def picture_next_prev_button_callback(self, step: int):
+        clicked_tab_text = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        if clicked_tab_text != "Gallery":
+            return
+
         self.image_idx += step
         country, coin_name, year = self.get_dropbox_values()
 

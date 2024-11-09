@@ -6,41 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>474</width>
-    <height>224</height>
+    <width>739</width>
+    <height>241</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Generate Augmented Data</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QScrollArea" name="scrollArea">
+   <widget class="QSlider" name="rotation_slider">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>171</width>
-      <height>181</height>
-     </rect>
-    </property>
-    <property name="widgetResizable">
-     <bool>true</bool>
-    </property>
-    <widget class="QWidget" name="scrollAreaWidgetContents">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>169</width>
-       <height>179</height>
-      </rect>
-     </property>
-    </widget>
-   </widget>
-   <widget class="QSlider" name="horizontalSlider">
-    <property name="geometry">
-     <rect>
-      <x>300</x>
+      <x>530</x>
       <y>10</y>
       <width>160</width>
       <height>22</height>
@@ -50,10 +27,10 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QSlider" name="horizontalSlider_2">
+   <widget class="QSlider" name="distortion_slider">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>530</x>
       <y>40</y>
       <width>160</width>
       <height>22</height>
@@ -63,10 +40,10 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QSlider" name="horizontalSlider_3">
+   <widget class="QSlider" name="blur_slider">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>530</x>
       <y>70</y>
       <width>160</width>
       <height>22</height>
@@ -76,10 +53,10 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QSlider" name="horizontalSlider_4">
+   <widget class="QSlider" name="noise_slider">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>530</x>
       <y>100</y>
       <width>160</width>
       <height>22</height>
@@ -92,7 +69,7 @@
    <widget class="QPushButton" name="generate_augmented_data_button">
     <property name="geometry">
      <rect>
-      <x>270</x>
+      <x>500</x>
       <y>160</y>
       <width>161</width>
       <height>31</height>
@@ -102,10 +79,10 @@
      <string>Generate</string>
     </property>
    </widget>
-   <widget class="QSlider" name="horizontalSlider_5">
+   <widget class="QSlider" name="picture_amount_slider">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>530</x>
       <y>130</y>
       <width>160</width>
       <height>22</height>
@@ -118,7 +95,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>430</x>
       <y>10</y>
       <width>81</width>
       <height>16</height>
@@ -131,7 +108,7 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>430</x>
       <y>40</y>
       <width>81</width>
       <height>16</height>
@@ -144,7 +121,7 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>430</x>
       <y>70</y>
       <width>81</width>
       <height>16</height>
@@ -157,7 +134,7 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>430</x>
       <y>100</y>
       <width>81</width>
       <height>16</height>
@@ -170,7 +147,7 @@
    <widget class="QLabel" name="label_5">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>430</x>
       <y>130</y>
       <width>81</width>
       <height>16</height>
@@ -178,6 +155,103 @@
     </property>
     <property name="text">
      <string>Nr. of Pictures</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="rotation_label">
+    <property name="geometry">
+     <rect>
+      <x>698</x>
+      <y>10</y>
+      <width>41</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="distorsion_label">
+    <property name="geometry">
+     <rect>
+      <x>700</x>
+      <y>40</y>
+      <width>41</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="blur_label">
+    <property name="geometry">
+     <rect>
+      <x>700</x>
+      <y>70</y>
+      <width>41</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="noise_label">
+    <property name="geometry">
+     <rect>
+      <x>700</x>
+      <y>100</y>
+      <width>41</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="number_of_pictures_label">
+    <property name="geometry">
+     <rect>
+      <x>700</x>
+      <y>130</y>
+      <width>41</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QFrame" name="augmented_color_frame">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>191</width>
+      <height>201</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+   </widget>
+   <widget class="QFrame" name="augmented_hue_frame">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>10</y>
+      <width>211</width>
+      <height>201</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
     </property>
    </widget>
   </widget>

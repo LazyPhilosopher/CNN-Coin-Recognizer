@@ -85,12 +85,17 @@ def create_coin_directory(catalog_path: str, coin_country: str, coin_name: str, 
 def parse_directory_into_dictionary(dir_path: str):
     try:
         out_dict = {country: {} for country in get_directories(dir_path)}
+        out_dict.pop("augmented")
+
         for country in out_dict.keys():
             country_path = os.path.join(dir_path, country)
             out_dict[country] = {coin_name: {} for coin_name in get_directories(country_path)}
             for coin in out_dict[country].keys():
                 coin_path = os.path.join(dir_path, country, coin)
-                out_dict[country][coin] = {year: [] for year in get_directories(coin_path)}
+                out_dict[country][coin] = {year: {
+                    "uncropped": get_files(os.path.join(coin_path, year, "uncropped")),
+                    "cropped": get_files(os.path.join(coin_path, year, "cropped"))
+                } for year in get_directories(coin_path)}
         return out_dict
     except:
         return None
@@ -130,15 +135,15 @@ def qimage_to_cv2(qimage):
     if format in (QImage.Format_ARGB32, QImage.Format_ARGB32_Premultiplied, QImage.Format_RGBA8888):
         channels = 4
         ptr = qimage.bits()
-        arr = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
-        return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGRA)  # Convert RGBA to OpenCV's BGRA format
+        return np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
+        # return cv2.cvtColor(arr, cv2.COLOR_RGBA2BGRA)  # Convert RGBA to OpenCV's BGRA format
 
     # Handle images without an alpha channel
     elif format == QImage.Format_RGB32:
         channels = 4  # QImage stores RGB32 as ARGB (premultiplied alpha)
         ptr = qimage.bits()
         arr = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
-        return cv2.cvtColor(arr, cv2.COLOR_BGRA2BGR)  # Drop alpha channel, convert to BGR
+        return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Drop alpha channel, convert to BGR
 
     elif format in (QImage.Format_RGB888, QImage.Format_Indexed8):
         channels = 3
@@ -160,6 +165,30 @@ def crop_vertices_mask_from_image(image: QImage, vertices) -> QImage:
     img_with_alpha = cv2.cvtColor(ndarray, cv2.COLOR_RGB2RGBA)
     img_with_alpha[mask == 0] = [0, 0, 0, 0]
     return cv2_to_qimage(img_with_alpha)
+
+
+def transparent_to_hue(image):
+    if image.shape[2] == 4:
+        # Split the channels (B, G, R, A)
+        b, g, r, a = cv2.split(image)
+
+        # Create a mask where white is not transparent and black is where it's transparent
+        mask = cv2.merge([a, a, a])  # Use alpha channel to create the mask (3-channel)
+
+        # Create a blank hue image
+        hue_image = cv2.merge([b, g, r])
+
+        # Set black color where the mask is transparent (alpha = 0)
+        mask_inverted = cv2.bitwise_not(mask)
+        result = cv2.bitwise_and(hue_image, hue_image, mask=mask_inverted[:, :, 0])
+
+        # Set the remaining area to white (where it's not transparent)
+        white_background = np.full_like(hue_image, 255)
+        result_with_white_bg = cv2.add(result, white_background, mask=mask[:, :, 0])
+
+        return result_with_white_bg
+    else:
+        raise ValueError("The image does not have an alpha channel!")
 
 
 # def show_image_popup(image):
