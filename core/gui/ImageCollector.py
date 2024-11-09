@@ -283,9 +283,9 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     # == Gallery Tab Routine ==
 
     def picture_next_prev_button_callback(self, step: int):
-        clicked_tab_text = self.tabWidget.tabText(self.tabWidget.currentIndex())
-        if clicked_tab_text != "Gallery":
-            return
+        # clicked_tab_text = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        # if clicked_tab_text != "Gallery":
+        #     return
 
         self.image_idx += step
         country, coin_name, year = self.get_dropbox_values()
