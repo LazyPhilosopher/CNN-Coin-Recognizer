@@ -148,8 +148,8 @@ def qimage_to_cv2(qimage):
     elif format == QImage.Format_RGB32:
         channels = 4  # QImage stores RGB32 as ARGB (premultiplied alpha)
         ptr = qimage.bits()
-        arr = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
-        return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Drop alpha channel, convert to BGR
+        return np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, channels))
+        # return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)  # Drop alpha channel, convert to BGR
 
     elif format in (QImage.Format_RGB888, QImage.Format_Indexed8):
         channels = 3
@@ -227,92 +227,37 @@ def apply_transformations(full_image, hue_image):
 
     return image1_final, image2_final
 
-def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray):
-    images = [full_image, hue_image]
-    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray, seed: int = 42):
+    # Ensure the images are contiguous arrays (important for memory layout)
+    full_image = np.ascontiguousarray(full_image)
+    hue_image = np.ascontiguousarray(hue_image)
 
+    # Set a deterministic random state for reproducibility
+    random_state = np.random.RandomState(seed)
+
+    # Initialize the augmentation sequence
     seq_common = iaa.Sequential(
-    [
-            # Apply flipping transformations (do not affect pixel content directly)
-            iaa.Fliplr(0.5),  # Horizontally flip 50% of all images
-            iaa.Flipud(0.2),  # Vertically flip 20% of all images
-
-            # # Affine transformation for geometric distortions (still a structural change, but no direct pixel modification if you don't modify color cvals)
-            sometimes(iaa.Affine(
+        [
+            iaa.Affine(
                 scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
                 translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)},  # translate by -20 to +20 percent (per axis)
                 rotate=(-45, 45),  # rotate by -45 to +45 degrees
                 shear=(-16, 16),  # shear by -16 to +16 degrees
                 order=[0, 1],  # nearest neighbour or bilinear interpolation
-                # cval=(0, 255),  # constant padding color if needed
                 mode=ia.ALL  # use all scikit-image warping modes
-            )),
-
-            # Some of the less pixel-affecting operations (geometric transformations)
-            # iaa.SomeOf((0, 5),
-            #            [
-            #                sometimes(iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25)),
-            #                sometimes(iaa.PiecewiseAffine(scale=(0.01, 0.05))),
-            #                sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.1)))
-            #            ],
-            #            random_order=True
-            #            )
+            ),
+            iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25),  # Local deformation
         ],
-        random_order=True
+        random_order=False  # Ensure the same order of augmentations
     )
 
-    seq_noise = iaa.Sequential(
-        [
-            # execute 0 to 5 of the following (less important) augmenters per image
-            # don't execute all of them, as that would often be way too strong
-            iaa.SomeOf((0, 5),
-                       [
-                           # sometimes(iaa.Superpixels(p_replace=(0, 1.0), n_segments=(20, 200))),
-                           # convert images into their superpixel representation
-                           iaa.OneOf([
-                               iaa.GaussianBlur((0, 3.0)),  # blur images with a sigma between 0 and 3.0
-                               iaa.AverageBlur(k=(2, 7)),
-                               # blur image using local means with kernel sizes between 2 and 7
-                               iaa.MedianBlur(k=(3, 11)),
-                               # blur image using local medians with kernel sizes between 2 and 7
-                           ]),
-                           # search either for all edges or for directed edges,
-                           # blend the result with the original image using a blobby mask
-                           # iaa.SimplexNoiseAlpha(iaa.OneOf([
-                           #     iaa.EdgeDetect(alpha=(0.5, 1.0)),
-                           #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
-                           # ])),
-                           iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
-                           # add gaussian noise to images
-                           # iaa.Invert(0.05, per_channel=True),  # invert color channels
-                           iaa.Add((-10, 10), per_channel=0.5),
-                           # change brightness of images (by -10 to 10 of original value)
-                           # iaa.AddToHueAndSaturation((-20, 20)),  # change hue and saturation
-                           # either change the brightness of the whole image (sometimes
-                           # per channel) or change the brightness of subareas
-                           # iaa.OneOf([
-                           #     iaa.Multiply((0.5, 1.5), per_channel=0.5),
-                           #     iaa.FrequencyNoiseAlpha(
-                           #         exponent=(-4, 0),
-                           #         first=iaa.Multiply((0.5, 1.5), per_channel=True),
-                           #         second=iaa.LinearContrast((0.5, 2.0))
-                           #     )
-                           # ]),
-                           # iaa.LinearContrast((0.5, 2.0), per_channel=0.5),  # improve or worsen the contrast
-                           # iaa.Grayscale(alpha=(0.0, 1.0)),
-                       ],
-                       random_order=True
-                       )
-        ],
-        random_order=True
-    )
-
+    # Apply deterministic transformations with the same random state
     seq_common_det = seq_common.to_deterministic()
-    seq_noise = seq_noise.to_deterministic()
 
+    # Apply the same deterministic transformation to both images
     full_image_aug = seq_common_det.augment_image(full_image)
-    full_image_aug = seq_noise.augment_image(full_image_aug)
     hue_image_aug = seq_common_det.augment_image(hue_image)
+
     return full_image_aug, hue_image_aug
 
 # def show_image_popup(image):
