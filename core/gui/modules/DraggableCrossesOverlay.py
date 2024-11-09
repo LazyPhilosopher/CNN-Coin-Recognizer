@@ -2,21 +2,22 @@ from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtGui import QPainter, QColor, QPen
 from PySide6.QtWidgets import QWidget
 
-from core.modules.catalog import Coin
+# from core.modules.catalog import Coin
 
-from core.qt_threading.common_signals import CommonSignals
+# from core.qt_threading.common_signals import CommonSignals
 
 
 class DraggableCrossesOverlay(QWidget):
     mouse_released = Signal(object)
+    crosses_changed = Signal()
 
     def __init__(self, parent=None, ):
         super().__init__(parent)
         self.crosses: list[QPoint] = []
-        self.signals = CommonSignals()
+        # self.signals = CommonSignals()
         self.selected_cross = None
         self.cross_size = 10
-        self.drawn_coin: Coin = None
+        # self.drawn_coin: Coin = None
 
         self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self.setMouseTracking(True)  # Optional, for smoother dragging
@@ -29,7 +30,6 @@ class DraggableCrossesOverlay(QWidget):
         pen = QPen(QColor('red'), 2)
         painter.setPen(pen)
         self.draw_crosses(painter=painter)
-
 
     def draw_crosses(self, painter: QPainter):
         if len(self.crosses) > 2:
@@ -51,6 +51,10 @@ class DraggableCrossesOverlay(QWidget):
         painter.drawLine(center.x(), center.y() - self.cross_size,
                          center.x(), center.y() + self.cross_size)
 
+    def reset_crosses(self):
+        self.crosses = []
+        self.crosses_changed.emit()
+
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
             self.crosses.append(QPoint(event.pos().x(), event.pos().y()))
@@ -70,6 +74,7 @@ class DraggableCrossesOverlay(QWidget):
     def mouseReleaseEvent(self, event):
         self.selected_cross = None
         self.mouse_released.emit(self.crosses)
+        self.crosses_changed.emit()
 
     # def reset_vertices(self):
     #     self.crosses = []

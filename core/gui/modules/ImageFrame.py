@@ -6,6 +6,9 @@ class ImageFrame(QFrame):
     def __init__(self, video_frame: QFrame):
         super().__init__(video_frame.parent())
 
+        self.cropped_image: QPixmap | None = None
+        self.uncropped_image: QPixmap | None = None
+
         self.front_image_label = QLabel(self)
         self.front_image_label.setScaledContents(True)
         self.background_image_label = QLabel(self)
@@ -36,13 +39,15 @@ class ImageFrame(QFrame):
             self.setFrameShape(frame_shape)
             self.setFrameShadow(frame_shadow)
 
-    def set_front_image(self, image: QImage):
-        pixmap = QPixmap(image)
-        self.front_image_label.setPixmap(pixmap)
+    def set_image(self, uncropped_image: QImage, cropped_image: QImage | None):
+        self.cropped_image = cropped_image
+        self.uncropped_image = uncropped_image
 
-    def set_background_image(self, image: QImage):
-        pixmap = QPixmap(image)
-        self.background_image_label.setPixmap(pixmap)
+        if cropped_image is not None:
+            self.front_image_label.setPixmap(QPixmap(cropped_image))
+            self.background_image_label.setPixmap(QPixmap(uncropped_image))
+        else:
+            self.front_image_label.setPixmap(QPixmap(uncropped_image))
 
     # def QPixmapToArray(self, pixmap):
     #     ## Get the size of the current pixmap

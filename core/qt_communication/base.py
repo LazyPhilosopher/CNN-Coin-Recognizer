@@ -1,38 +1,27 @@
+from enum import Enum
 from typing import Type
 
-from PySide6.QtCore import QObject, Signal, QEventLoop, QTimer
+from PySide6.QtCore import QTimer, QEventLoop, Signal
 
-from core.qt_threading.messages.MessageBase import MessageBase
+from core.qt_communication.messages.common_signals import CommonSignals
 
-
-def singleton(cls):
-    instances = {}
-
-    def get_instance(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-
-    return get_instance
+qt_signals = CommonSignals()
 
 
-@singleton
-class CommonSignals(QObject):
+class Modules(Enum):
+    MAIN = 1
+    VIDEO_STREAM = 2
+    CATALOG_HANDLER = 3
+    GALLERY_WINDOW = 4
+    DRAGGABLE_CROSS_OVERLAY = 5
+    PROCESSING_MODULE = 6
+    IMAGE_COLLECTOR_WINDOW = 7
 
-    # Catalog handler
-    catalog_handler_request = Signal(object)
-    catalog_handler_response = Signal(object)
 
-    # Processing Module
-    processing_module_request = Signal(object)
-
-    # Video thread
-    video_thread_request = Signal(object)
-    # video_thread_response = Signal(object)
-    frame_available = Signal(object)
-
+class MessageBase:
     def __init__(self):
-        super().__init__()
+        self.source: Modules | None = None
+        self.destination: Modules | None = None
 
 
 def blocking_response_message_await(request_signal: Signal,

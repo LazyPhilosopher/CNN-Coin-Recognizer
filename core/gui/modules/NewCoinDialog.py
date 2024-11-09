@@ -8,14 +8,14 @@ class NewCoinDialog(QDialog):
         self.setWindowTitle("Input Dialog")
 
         # Create text input fields
-        self.coin_year_field = QLineEdit(self)
-        self.coin_year_field.setPlaceholderText("Coin year")
-
         self.coin_country_field = QLineEdit(self)
         self.coin_country_field.setPlaceholderText("Coin country")
 
         self.coin_name_field = QLineEdit(self)
         self.coin_name_field.setPlaceholderText("Coin name")
+
+        self.coin_year_field = QLineEdit(self)
+        self.coin_year_field.setPlaceholderText("Coin year")
 
         # Create buttons
         self.confirm_button = QPushButton("Confirm", self)
@@ -28,9 +28,9 @@ class NewCoinDialog(QDialog):
 
         # Main layout
         layout = QVBoxLayout()
-        layout.addWidget(self.coin_year_field)
         layout.addWidget(self.coin_country_field)
         layout.addWidget(self.coin_name_field)
+        layout.addWidget(self.coin_year_field)
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
