@@ -1,5 +1,7 @@
 import shutil
 import os
+import imgaug.augmenters as iaa
+import imgaug as ia
 
 import cv2
 import numpy as np
@@ -7,6 +9,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtWidgets import QMessageBox, QApplication, QWidget, QDialog, QLabel, QPushButton, QVBoxLayout
 from rembg import remove
+
+from skimage import transform, filters, util
+from skimage.util import random_noise
 
 # import win32com.client
 
@@ -85,7 +90,7 @@ def create_coin_directory(catalog_path: str, coin_country: str, coin_name: str, 
 def parse_directory_into_dictionary(dir_path: str):
     try:
         out_dict = {country: {} for country in get_directories(dir_path)}
-        out_dict.pop("augmented")
+        out_dict.pop("augmented", None)
 
         for country in out_dict.keys():
             country_path = os.path.join(dir_path, country)
@@ -103,7 +108,8 @@ def parse_directory_into_dictionary(dir_path: str):
 
 def remove_background_rembg(img):
     img = remove(img)
-    return cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+    # return cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+    return img
 
 
 def cv2_to_qimage(cv_img):
@@ -111,17 +117,17 @@ def cv2_to_qimage(cv_img):
     if cv_img.ndim == 3 and cv_img.shape[2] == 3:  # RGB
         height, width, channels = cv_img.shape
         bytes_per_line = channels * width
-        qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        cv_img_contig = np.ascontiguousarray(cv_img)
+        qimage = QImage(cv_img_contig.data, width, height, bytes_per_line, QImage.Format_RGB888)
     elif cv_img.ndim == 3 and cv_img.shape[2] == 4:  # RGBA
+        cv_img = cv2.cvtColor(cv_img, cv2.COLOR_BGRA2RGBA)
         height, width, channels = cv_img.shape
         bytes_per_line = channels * width
-        qimage = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
+        cv_img_contig = np.ascontiguousarray(cv_img)
+        qimage = QImage(cv_img_contig.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
     else:
         raise ValueError("Unsupported array shape for RGB(A) format")
-
-    # The QImage does not take ownership of the array data by default,
-    # so we need to make a deep copy if the data might change
-    return qimage.copy()
+    return qimage
 
 
 def qimage_to_cv2(qimage):
@@ -190,6 +196,124 @@ def transparent_to_hue(image):
     else:
         raise ValueError("The image does not have an alpha channel!")
 
+
+def apply_transformations(full_image, hue_image):
+    # Define random parameters for transformations
+    angle = np.random.uniform(-30, 30)  # Random rotation angle
+    sigma = np.random.uniform(1, 3)  # Random blur sigma
+    distort_strength = np.random.uniform(0.8, 1.2)  # Slight distortion
+    noise_amount = np.random.uniform(0.02, 0.05)  # Random white noise level
+
+    # 1. Apply rotation
+    image1_rotated = transform.rotate(full_image, angle, resize=False, mode='edge')
+    image2_rotated = transform.rotate(hue_image, angle, resize=False, mode='edge')
+
+    # 2. Apply Gaussian blur
+    image1_blurred = filters.gaussian(image1_rotated, sigma=sigma)
+    image2_blurred = filters.gaussian(image2_rotated, sigma=sigma)
+
+    # 3. Apply slight distortion (scale transformation)
+    tform = transform.AffineTransform(scale=(distort_strength, distort_strength))
+    # image1_distorted = transform.warp(image1_blurred, tform.inverse, mode='edge')
+    # image2_distorted = transform.warp(image2_blurred, tform.inverse, mode='edge')
+
+    # 4. Add random white noise
+    image1_noisy = random_noise(image1_blurred, mode='gaussian', var=noise_amount**2)
+    # image2_noisy = random_noise(image2_distorted, mode='gaussian', var=noise_amount**2)
+
+    # Rescale from [0,1] to [0,255] if needed
+    image1_final = util.img_as_ubyte(np.clip(image1_noisy, 0, 1))
+    image2_final = util.img_as_ubyte(np.clip(image2_blurred, 0, 1))
+
+    return image1_final, image2_final
+
+def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray):
+    images = [full_image, hue_image]
+    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+
+    seq_common = iaa.Sequential(
+    [
+            # Apply flipping transformations (do not affect pixel content directly)
+            iaa.Fliplr(0.5),  # Horizontally flip 50% of all images
+            iaa.Flipud(0.2),  # Vertically flip 20% of all images
+
+            # # Affine transformation for geometric distortions (still a structural change, but no direct pixel modification if you don't modify color cvals)
+            sometimes(iaa.Affine(
+                scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
+                translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)},  # translate by -20 to +20 percent (per axis)
+                rotate=(-45, 45),  # rotate by -45 to +45 degrees
+                shear=(-16, 16),  # shear by -16 to +16 degrees
+                order=[0, 1],  # nearest neighbour or bilinear interpolation
+                # cval=(0, 255),  # constant padding color if needed
+                mode=ia.ALL  # use all scikit-image warping modes
+            )),
+
+            # Some of the less pixel-affecting operations (geometric transformations)
+            # iaa.SomeOf((0, 5),
+            #            [
+            #                sometimes(iaa.ElasticTransformation(alpha=(0.5, 3.5), sigma=0.25)),
+            #                sometimes(iaa.PiecewiseAffine(scale=(0.01, 0.05))),
+            #                sometimes(iaa.PerspectiveTransform(scale=(0.01, 0.1)))
+            #            ],
+            #            random_order=True
+            #            )
+        ],
+        random_order=True
+    )
+
+    seq_noise = iaa.Sequential(
+        [
+            # execute 0 to 5 of the following (less important) augmenters per image
+            # don't execute all of them, as that would often be way too strong
+            iaa.SomeOf((0, 5),
+                       [
+                           # sometimes(iaa.Superpixels(p_replace=(0, 1.0), n_segments=(20, 200))),
+                           # convert images into their superpixel representation
+                           iaa.OneOf([
+                               iaa.GaussianBlur((0, 3.0)),  # blur images with a sigma between 0 and 3.0
+                               iaa.AverageBlur(k=(2, 7)),
+                               # blur image using local means with kernel sizes between 2 and 7
+                               iaa.MedianBlur(k=(3, 11)),
+                               # blur image using local medians with kernel sizes between 2 and 7
+                           ]),
+                           # search either for all edges or for directed edges,
+                           # blend the result with the original image using a blobby mask
+                           # iaa.SimplexNoiseAlpha(iaa.OneOf([
+                           #     iaa.EdgeDetect(alpha=(0.5, 1.0)),
+                           #     iaa.DirectedEdgeDetect(alpha=(0.5, 1.0), direction=(0.0, 1.0)),
+                           # ])),
+                           iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5),
+                           # add gaussian noise to images
+                           # iaa.Invert(0.05, per_channel=True),  # invert color channels
+                           iaa.Add((-10, 10), per_channel=0.5),
+                           # change brightness of images (by -10 to 10 of original value)
+                           # iaa.AddToHueAndSaturation((-20, 20)),  # change hue and saturation
+                           # either change the brightness of the whole image (sometimes
+                           # per channel) or change the brightness of subareas
+                           # iaa.OneOf([
+                           #     iaa.Multiply((0.5, 1.5), per_channel=0.5),
+                           #     iaa.FrequencyNoiseAlpha(
+                           #         exponent=(-4, 0),
+                           #         first=iaa.Multiply((0.5, 1.5), per_channel=True),
+                           #         second=iaa.LinearContrast((0.5, 2.0))
+                           #     )
+                           # ]),
+                           # iaa.LinearContrast((0.5, 2.0), per_channel=0.5),  # improve or worsen the contrast
+                           # iaa.Grayscale(alpha=(0.0, 1.0)),
+                       ],
+                       random_order=True
+                       )
+        ],
+        random_order=True
+    )
+
+    seq_common_det = seq_common.to_deterministic()
+    seq_noise = seq_noise.to_deterministic()
+
+    full_image_aug = seq_common_det.augment_image(full_image)
+    full_image_aug = seq_noise.augment_image(full_image_aug)
+    hue_image_aug = seq_common_det.augment_image(hue_image)
+    return full_image_aug, hue_image_aug
 
 # def show_image_popup(image):
 #     """

@@ -13,8 +13,8 @@ class OpenCV2CoinRecognizerApp:
         app = QApplication([])
         self.signals = CommonSignals()
 
-        # video_stream = VideoModule()
-        # video_stream.start_process()
+        video_stream = VideoModule()
+        video_stream.start_process()
 
         processing_module = ProcessingModule()
         processing_module.start_process()
