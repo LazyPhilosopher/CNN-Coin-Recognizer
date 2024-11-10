@@ -14,7 +14,7 @@ from core.qt_communication.messages.processing_module.Responses import Processed
 from core.qt_communication.messages.video_module.Requests import CameraListRequest
 from core.qt_communication.messages.video_module.Responses import CameraListResponse, FrameAvailable
 from core.utilities.helper import parse_directory_into_dictionary, create_coin_directory, get_files, \
-    crop_vertices_mask_from_image
+    crop_vertices_mask_from_image, get_tab_index_by_label
 
 catalog_dir = "coin_catalog"
 
@@ -101,7 +101,12 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
                     response_message_type=ProcessedImageResponse)
                 self.qt_signals.frame_available.connect(self.handle_request)
 
-                self.video_frame.set_image(cropped_image=response.image, uncropped_image=request.frame)
+                if response is None:
+                    # response wasn't received in time
+                    uncropped_image = QImage("core/gui/pictures/default_image.jpg")
+                    self.video_frame.set_image(cropped_image=None, uncropped_image=uncropped_image)
+                else:
+                    self.video_frame.set_image(cropped_image=response.image, uncropped_image=request.frame)
             else:
                 self.video_frame.set_image(cropped_image=None, uncropped_image=request.frame)
 
@@ -110,6 +115,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.qt_signals.video_module_request.emit(CameraListRequest())
 
     def _tab_bar_click_callback(self, index):
+        self.tabWidget.setCurrentIndex(index)
         self.overlay.reset_crosses()
 
         clicked_tab_text = self.tabWidget.tabText(index)
@@ -283,9 +289,9 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     # == Gallery Tab Routine ==
 
     def picture_next_prev_button_callback(self, step: int):
-        # clicked_tab_text = self.tabWidget.tabText(self.tabWidget.currentIndex())
-        # if clicked_tab_text != "Gallery":
-        #     return
+        clicked_tab_text = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        if clicked_tab_text != "Gallery":
+            return
 
         self.image_idx += step
         country, coin_name, year = self.get_dropbox_values()
@@ -298,11 +304,11 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         if len(uncropped_images) == 0:
             self.video_frame.set_image(uncropped_image=QImage("core/gui/pictures/default_image.jpg"), cropped_image=None)
-            idx = self.tabWidget.currentIndex()
+            idx = get_tab_index_by_label(self.tabWidget, "Gallery")
             self.tabWidget.widget(idx).setEnabled(False)
 
         else:
-            idx = self.tabWidget.currentIndex()
+            idx = get_tab_index_by_label(self.tabWidget, "Gallery")
             self.tabWidget.widget(idx).setEnabled(True)
 
             self.image_idx %= len(uncropped_images)

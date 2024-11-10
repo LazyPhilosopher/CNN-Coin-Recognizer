@@ -70,34 +70,44 @@ class ProcessingModule(QObject):
                         if not coin_photo in catalog_dict[country][coin_name][year]["cropped"]:
                             continue
 
-                        cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year,
-                                                               "cropped", coin_photo)
-                        uncropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year,
-                                                                 "uncropped", coin_photo)
+                        cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "cropped")
+                        uncropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "uncropped")
 
                         os.makedirs(os.path.join(catalog_path, "augmented", country, coin_name, year),
                                     exist_ok=True)
 
-                        uncropped_image = QImage(uncropped_coin_photo_path)
-                        cropped_image = QImage(cropped_coin_photo_path)
+                        cropped_file_list = catalog_dict[country][coin_name][year]["cropped"]
+                        uncpped_file_list = catalog_dict[country][coin_name][year]["uncropped"]
+                        picture_filename_list = [picture for picture in uncpped_file_list if picture in cropped_file_list]
 
-                        cv2_uncropped_image = qimage_to_cv2(uncropped_image)
-                        cv2_cropped_image = qimage_to_cv2(cropped_image)
+                        uncropped_qimage_files = [QImage(os.path.join(uncropped_coin_photo_path, picture)) for picture in picture_filename_list]
+                        cropped_qimage_files = [QImage(os.path.join(cropped_coin_photo_path, picture)) for picture in picture_filename_list]
 
-                        cv2_hue_image = transparent_to_hue(cv2_cropped_image)
+                        # uncropped_image = QImage(uncropped_coin_photo_path)
+                        # cropped_image = QImage(cropped_coin_photo_path)
+
+                        uncropped_cv2_files = [qimage_to_cv2(uncropped_image) for uncropped_image in uncropped_qimage_files]
+                        cropped_cv2_files = [qimage_to_cv2(cropped_image) for cropped_image in cropped_qimage_files]
+                        cropped_cv2_hue_files = [transparent_to_hue(cv2_cropped_image) for cv2_cropped_image in cropped_cv2_files]
+
+                        # cv2_uncropped_image = qimage_to_cv2(uncropped_image)
+                        # cv2_cropped_image = qimage_to_cv2(cropped_image)
+
+                        # cv2_hue_image = transparent_to_hue(cv2_cropped_image)
 
                         # Transformations
                         for i in range(10):
                             cv2_warped_uncropped_image, cv2_warped_hue_image = (
-                                imgaug_transformation(full_image=cv2_uncropped_image.copy(), hue_image=cv2_hue_image.copy()))
+                                imgaug_transformation(full_image_list=uncropped_cv2_files,
+                                                      hue_image_list=cropped_cv2_hue_files))
 
-                            full_image = cv2_to_qimage(cv2_warped_uncropped_image)
-                            cropped_image = cv2_to_qimage(cv2_warped_hue_image)
+                            augmented_qimage_list = [cv2_to_qimage(image) for image in cv2_warped_uncropped_image]
+                            augmented_hue_list = [cv2_to_qimage(image) for image in cv2_warped_hue_image]
 
-                            full_image.save(
-                                os.path.join(catalog_path, "augmented", country, coin_name, year,
-                                             f"{os.path.splitext(coin_photo)[0]}_{i}_full.png"))
-                            cropped_image.save(
-                                os.path.join(catalog_path, "augmented", country, coin_name, year,
+                            for image in augmented_qimage_list:
+                                image.save(os.path.join(catalog_path, "augmented", country, coin_name, year,
+                                                        f"{os.path.splitext(coin_photo)[0]}_{i}_full.png"))
+
+                            for image in augmented_hue_list:
+                                image.save(os.path.join(catalog_path, "augmented", country, coin_name, year,
                                              f"{os.path.splitext(coin_photo)[0]}_{i}_hue.png"))
-
