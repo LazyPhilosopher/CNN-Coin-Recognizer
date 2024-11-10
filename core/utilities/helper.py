@@ -1,17 +1,15 @@
-import shutil
 import os
-import imgaug.augmenters as iaa
-import imgaug as ia
+import os
 
 import cv2
+import imgaug as ia
+import imgaug.augmenters as iaa
 import numpy as np
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QImage
-from PySide6.QtWidgets import QMessageBox, QApplication, QWidget, QDialog, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtGui import QImage
 from rembg import remove
-
 from skimage import transform, filters, util
 from skimage.util import random_noise
+
 
 # import win32com.client
 
@@ -28,63 +26,6 @@ def create_coin_directory(catalog_path: str, coin_country: str, coin_name: str, 
     os.makedirs(os.path.join(catalog_path, coin_country, coin_name, coin_year, "cropped"), exist_ok=True)
     os.makedirs(os.path.join(catalog_path, coin_country, coin_name, coin_year, "uncropped"), exist_ok=True)
 
-
-# def move_files(file_list, source_folder, destination_folder, create_dir=True):
-#     # Ensure destination folder exists if create_dir is True
-#     if create_dir and not os.path.exists(destination_folder):
-#         os.makedirs(destination_folder)
-#
-#     for file_name in file_list:
-#         source_path = os.path.join(source_folder, file_name)
-#         destination_path = os.path.join(destination_folder, file_name)
-#
-#         if os.path.exists(source_path):
-#             # Move the file to the new destination
-#             shutil.move(source_path, destination_path)
-#             print(f"Moved: {source_path} -> {destination_path}")
-#         else:
-#             print(f"File not found: {source_path}")
-
-
-# def show_confirmation_dialog(parent: QWidget, title: str, message: str):
-#     # Create a message box
-#     msg_box = QMessageBox(parent)
-#     msg_box.setIcon(QMessageBox.Icon.Question)  # Use the question icon
-#     msg_box.setWindowTitle(title)
-#     msg_box.setText(message)
-#
-#     # Add Yes and No buttons using QMessageBox.StandardButton
-#     msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-#     msg_box.setDefaultButton(QMessageBox.StandardButton.No)  # Set No as the default button
-#
-#     # Display the dialog and capture the user's response
-#     result = msg_box.exec()
-#
-#     if result == QMessageBox.StandardButton.Yes:
-#         return True  # User clicked Yes
-#     else:
-#         return False  # User clicked No
-
-
-
-# def remove_background(img, contours):
-#     # Create a mask for the background (single channel)
-#     mask = np.zeros_like(img[:, :, 0])
-#
-#     if contours:
-#         cnt = max(contours, key=cv2.contourArea)  # Find the largest contour
-#         cv2.drawContours(mask, [cv2.convexHull(cnt)], -1, 255, thickness=cv2.FILLED)  # Fill the contour
-#
-#     # Convert the mask to a 4-channel version (for RGBA)
-#     mask_alpha = cv2.merge([mask, mask, mask, mask])
-#
-#     # Create a transparent image
-#     img_with_alpha = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
-#
-#     # Set background pixels to transparent where the mask is zero
-#     img_with_alpha[mask_alpha[:, :, 3] == 0] = [0, 0, 0, 0]  # Set to transparent (RGBA)
-#
-#     return img_with_alpha
 
 
 def parse_directory_into_dictionary(dir_path: str):
@@ -227,13 +168,12 @@ def apply_transformations(full_image, hue_image):
 
     return image1_final, image2_final
 
-def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray, seed: int = 42):
+def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray):
     # Ensure the images are contiguous arrays (important for memory layout)
     full_image = np.ascontiguousarray(full_image)
     hue_image = np.ascontiguousarray(hue_image)
 
     # Set a deterministic random state for reproducibility
-    random_state = np.random.RandomState(seed)
 
     # Initialize the augmentation sequence
     seq_common = iaa.Sequential(
@@ -251,58 +191,21 @@ def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray, seed: i
         random_order=False  # Ensure the same order of augmentations
     )
 
+    seq_noise = iaa.Sequential([
+        iaa.OneOf([
+            iaa.AdditiveGaussianNoise(scale=(0, 0.1 * 255)),  # Gaussian noise with random intensity
+            iaa.SaltAndPepper(p=(0.01, 0.05)),  # Salt and pepper noise with random proportion
+            iaa.AdditivePoissonNoise(lam=(0, 8)),  # Poisson noise with random lambda
+        ])
+    ])
+
     # Apply deterministic transformations with the same random state
     seq_common_det = seq_common.to_deterministic()
+    seq_noise_det = seq_noise.to_deterministic()
 
     # Apply the same deterministic transformation to both images
     full_image_aug = seq_common_det.augment_image(full_image)
+    full_image_aug = seq_noise_det.augment_image(full_image_aug)
     hue_image_aug = seq_common_det.augment_image(hue_image)
 
     return full_image_aug, hue_image_aug
-
-# def show_image_popup(image):
-#     """
-#     Display the given QImage in a popup window.
-#
-#     Args:
-#     image (QImage): The QImage to display in the popup.
-#     """
-#     # Create a dialog window
-#     dialog = QDialog()
-#     dialog.setWindowTitle("Image Preview")
-#     dialog.setFixedSize(image.width(), image.height())
-#
-#     # Convert QImage to QPixmap for display
-#     pixmap = QPixmap.fromImage(image)
-#
-#     # Create a label to display the image
-#     label = QLabel(dialog)
-#     label.setPixmap(pixmap)
-#     label.setAlignment(Qt.AlignCenter)
-#
-#     # Add a button to close the dialog
-#     close_button = QPushButton("Close", dialog)
-#     close_button.clicked.connect(dialog.accept)
-#
-#     # Set layout for the dialog
-#     layout = QVBoxLayout(dialog)
-#     layout.addWidget(label)
-#     layout.addWidget(close_button)
-#
-#     # Show the dialog
-#     dialog.exec()
-
-# def on_usb_device_connected():
-#     print("A USB device has been connected.")
-#
-#
-# def monitor_usb_devices():
-#     wmi = win32com.client.GetObject("winmgmts:")
-#     watcher = wmi.ExecNotificationQuery(
-#         "SELECT * FROM Win32_DeviceChangeEvent"
-#     )
-#
-#     while True:
-#         event = watcher.NextEvent()
-#         if event:
-#             on_usb_device_connected()
