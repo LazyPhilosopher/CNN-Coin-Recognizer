@@ -169,10 +169,13 @@ def apply_transformations(full_image, hue_image):
 
     return image1_final, image2_final
 
-def imgaug_transformation(full_image_list: list[np.ndarray], hue_image_list: list[np.ndarray]):
+def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray):
     # Ensure the images are contiguous arrays (important for memory layout)
-    contiguous_image_list = [np.ascontiguousarray(full_image.copy()) for full_image in full_image_list]
-    contiguous_hue_list = [np.ascontiguousarray(hue_image.copy()) for hue_image in hue_image_list]
+    # contiguous_image_list = [np.ascontiguousarray(full_image.copy()) for full_image in full_image_list]
+    # contiguous_hue_list = [np.ascontiguousarray(hue_image.copy()) for hue_image in hue_image_list]
+
+    full_image = np.ascontiguousarray(full_image)
+    hue_image = np.ascontiguousarray(hue_image)
 
     # Set a deterministic random state for reproducibility
 
@@ -205,11 +208,11 @@ def imgaug_transformation(full_image_list: list[np.ndarray], hue_image_list: lis
     seq_noise_det = seq_noise.to_deterministic()
 
     # Apply the same deterministic transformation to both images
-    full_images_aug = seq_common_det.augment_images(contiguous_image_list)
-    full_images_aug = seq_noise_det.augment_images(full_images_aug)
-    hue_images_aug = seq_common_det.augment_images(contiguous_hue_list)
+    full_image_aug = seq_common_det.augment_image(full_image)
+    full_image_aug = seq_noise_det.augment_image(full_image_aug)
+    hue_image_aug = seq_common_det.augment_image(hue_image)
 
-    return full_images_aug, hue_images_aug
+    return full_image_aug, hue_image_aug
 
 
 def get_tab_index_by_label(tab_widget: QTabWidget, label: str) -> int:
