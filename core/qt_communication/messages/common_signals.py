@@ -17,6 +17,9 @@ class CommonSignals(QObject):
 
     # Processing Module
     processing_module_request = Signal(object)
+    processing_module_response = Signal(object)
+    worker_finished = Signal()
+
     # Video Module
     video_module_request = Signal(object)
     frame_available = Signal(object)

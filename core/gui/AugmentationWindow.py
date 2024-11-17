@@ -19,6 +19,24 @@ class AugmentationWindow(QMainWindow, Ui_AugmentationWindow):
 
         self.generate_augmented_data_button.clicked.connect(self.handle_request_augmented_data_button)
 
+        self.sliders = [
+            self.blur_slider,
+            self.noise_slider,
+            self.rotation_slider,
+            self.distortion_slider,
+            self.picture_amount_slider
+        ]
+        [slider.valueChanged.connect(self.update_labels) for slider in self.sliders]
+
+        # self.labels = [
+        #     self.blur_slider,
+        #     self.noise_slider,
+        #     self.rotation_slider,
+        #     self.distortion_slider,
+        #     self.picture_amount_slider
+        # ]
+        # [label.valueChanged.connect(self.update_sliders) for label in self.labels]
+
     def handle_request(self, request: MessageBase):
         request_handlers = {
             AugmentedPictureResponse: self._handle_augmented_picture_response
@@ -45,6 +63,29 @@ class AugmentationWindow(QMainWindow, Ui_AugmentationWindow):
             noise=noise,
             picture_amount=picture_amount
         ))
+
+    def update_labels(self):
+        [slider.valueChanged.disconnect(self.update_labels) for slider in self.sliders]
+
+        self.blur_label.setText(str(self.blur_slider.value()))
+        self.noise_label.setText(str(self.noise_slider.value()))
+        self.rotation_label.setText(str(self.rotation_slider.value()))
+        self.distorsion_label.setText(str(self.distortion_slider.value()))
+        self.number_of_pictures_label.setText(str(self.picture_amount_slider.value()))
+
+        [slider.valueChanged.connect(self.update_labels) for slider in self.sliders]
+
+    # def update_sliders(self):
+    #     [label.valueChanged.disconnect(self.update_labels) for label in self.labels]
+    #
+    #     self.blur_slider.setValue(int(self.blur_label.valu()))
+    #     self.noise_slider.setValue(int(self.noise_label.value()))
+    #     self.rotation_slider.setValue(int(self.rotation_label.value()))
+    #     self.distortion_slider.setValue(int(self.distorsion_label.value()))
+    #     self.picture_amount_slider.setValue(int(self.picture_amount_slider.value()))
+    #
+    #     [label.valueChanged.connect(self.update_labels) for label in self.labels]
+
 
     def _handle_augmented_picture_response(self):
         pass

@@ -17,7 +17,7 @@ class OpenCV2CoinRecognizerApp:
         video_stream.start_process()
 
         processing_module = ProcessingModule()
-        processing_module.start_process()
+        # processing_module.start_process()
 
         self.main_window = AppWindow()
         self.main_window.show()

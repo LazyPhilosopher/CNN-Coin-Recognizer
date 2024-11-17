@@ -24,7 +24,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.qt_signals = CommonSignals()
+        # self.qt_signals = CommonSignals()
         self.module: Modules = Modules.IMAGE_COLLECTOR_WINDOW
 
         self.video_frame = ImageFrame(self.video_frame)
@@ -57,8 +57,8 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
         # Outer module incoming requests
         # self.qt_signals.catalog_handler_response.connect(self.handle_request)
-        self.qt_signals.video_module_request.connect(self.handle_request)
-        self.qt_signals.frame_available.connect(self.handle_request)
+        qt_signals.video_module_request.connect(self.handle_request)
+        qt_signals.frame_available.connect(self.handle_request)
 
         # self.qt_signals.catalog_handler_request.emit(CatalogDictRequest(source=Modules.GALLERY_WINDOW))
         self.init()
@@ -88,18 +88,19 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         if self.tabWidget.tabText(current_tab_index) == "Camera":
             if self.auto_background_deletion_checkbox.isChecked():
 
-                self.qt_signals.frame_available.disconnect(self.handle_request)
+                qt_signals.frame_available.disconnect(self.handle_request)
                 message = RemoveBackgroundRequest(
                     source=Modules.CATALOG_HANDLER,
                     destination=Modules.PROCESSING_MODULE,
                     picture=request.frame)
 
                 response: ProcessedImageResponse = blocking_response_message_await(
-                    request_signal=self.qt_signals.processing_module_request,
+                    request_signal=qt_signals.processing_module_request,
                     request_message=message,
-                    response_signal=self.qt_signals.processing_module_request,
-                    response_message_type=ProcessedImageResponse)
-                self.qt_signals.frame_available.connect(self.handle_request)
+                    response_signal=qt_signals.processing_module_response,
+                    response_message_type=ProcessedImageResponse,
+                    timeout_ms=5000)
+                qt_signals.frame_available.connect(self.handle_request)
 
                 if response is None:
                     # response wasn't received in time
@@ -112,7 +113,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
     @Slot()
     def _request_camera_ids(self):
-        self.qt_signals.video_module_request.emit(CameraListRequest())
+        qt_signals.video_module_request.emit(CameraListRequest())
 
     def _tab_bar_click_callback(self, index):
         self.tabWidget.setCurrentIndex(index)
@@ -334,9 +335,9 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             picture=cropped_image)
 
         response: ProcessedImageResponse = blocking_response_message_await(
-            request_signal=self.qt_signals.processing_module_request,
+            request_signal=qt_signals.processing_module_request,
             request_message=message,
-            response_signal=self.qt_signals.processing_module_request,
+            response_signal=qt_signals.processing_module_response,
             response_message_type=ProcessedImageResponse)
 
         cropped_image = response.image

@@ -1,5 +1,6 @@
 import os
 import os
+import pickle
 
 import cv2
 import imgaug as ia
@@ -217,3 +218,13 @@ def get_tab_index_by_label(tab_widget: QTabWidget, label: str) -> int:
         if tab_widget.tabText(index) == label:
             return index
     return -1
+
+def is_picklable(obj):
+    """
+    Check if an object is picklable.
+    """
+    try:
+        pickle.dumps(obj)
+        return True
+    except Exception:
+        return False
