@@ -1,3 +1,4 @@
+import json
 import os
 from collections import defaultdict
 from random import random
@@ -79,7 +80,7 @@ def create_dataset(data_dict, enumerations):
     images_hue = tf.convert_to_tensor(images_hue, dtype=tf.float32)
     labels = tf.convert_to_tensor(labels, dtype=tf.int32)
 
-    return tf.data.Dataset.from_tensor_slices(({"full_image": images_full, "hue_image": images_hue}, labels))
+    return tf.data.Dataset.from_tensor_slices(({"full_image": images_full, "hue_image": images_hue, "labels": labels}))
 
 
 def create_model(input_shape_full=(128, 128, 3), input_shape_hue=(128, 128, 1), num_classes=10):
@@ -110,13 +111,76 @@ def create_model(input_shape_full=(128, 128, 3), input_shape_hue=(128, 128, 1), 
     return model
 
 
+def create_example(full_image, hue_image, labels):
+    # Ensure the images are of type uint8 (scaling if necessary)
+    full_image = tf.cast(tf.clip_by_value(full_image * 255, 0, 255), tf.uint8)
+    hue_image = tf.cast(tf.clip_by_value(hue_image * 255, 0, 255), tf.uint8)
+    hue_image = tf.expand_dims(hue_image, axis=-1)
+
+    # Encode the images as PNG
+    full_bytes = tf.io.encode_png(full_image)
+    hue_bytes = tf.io.encode_png(hue_image)
+
+    # Creating a feature dictionary to store as Example
+    feature = {
+        'full_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[full_bytes.numpy()])),
+        'hue_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[hue_bytes.numpy()])),
+        'label': tf.convert_to_tensor(labels, dtype=tf.int32)
+    }
+    example = tf.train.Example(features=tf.train.Features(feature=feature))
+    return example
+
+
+def parse_example(serialized_example):
+    feature_description = {
+        'full_image': tf.io.FixedLenFeature([], tf.string),
+        'hue_image': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.int64)
+    }
+    parsed = tf.io.parse_single_example(serialized_example, feature_description)
+
+    # Decode the images
+    full_image = tf.image.decode_png(parsed['full_image'], channels=3)
+    hue_image = tf.image.decode_png(parsed['hue_image'], channels=1)
+    label = parsed['label']
+
+    return {'full_image': full_image, 'hue_image': hue_image}, label
+
+
 if __name__ == "__main__":
     enumerations, training_dict, validation_dict = format_dataset()
 
     print("Training Dataset Creation:")
+    # try:
+    #     raw_dataset = tf.data.TFRecordDataset('trained/datasets/dataset.tfrecord')
+    #     train_dataset = raw_dataset.map(parse_example)
+    #
+    #     for features, label in train_dataset.take(1):
+    #         print("Full image shape:", features['full_image'].shape)
+    #         print("Hue image shape:", features['hue_image'].shape)
+    #         print("Label:", label.numpy())
+    # except:
     train_dataset = create_dataset(training_dict, enumerations)
+    with tf.io.TFRecordWriter('trained/datasets/dataset.tfrecord') as writer:
+        for data in train_dataset:
+            example = create_example(data["full_image"], data["hue_image"], data["labels"])  # Convert image to serialized example
+            writer.write(example.SerializeToString())
+
     print("Validation Dataset Creation:")
-    val_dataset = create_dataset(validation_dict, enumerations)
+    try:
+        raw_dataset = tf.data.TFRecordDataset('trained/datasets/validation_dataset.tfrecord')
+        train_dataset = raw_dataset.map(parse_example)
+
+        for features, label in train_dataset.take(1):
+            print("Full image shape:", features['full_image'].shape)
+            print("Hue image shape:", features['hue_image'].shape)
+            print("Label:", label.numpy())
+    except:
+        val_dataset = create_dataset(validation_dict, enumerations)
+        with tf.io.TFRecordWriter('trained/datasets/validation_dataset.tfrecord') as writer:
+            for image, label in train_dataset:
+                example = create_example(image, label)
+                writer.write(example.SerializeToString())
 
     print("Train Dataset Shuffle")
     train_dataset = train_dataset.shuffle(buffer_size=1000).batch(32).prefetch(tf.data.AUTOTUNE)
@@ -141,3 +205,4 @@ if __name__ == "__main__":
     val_loss, val_accuracy = model.evaluate(val_dataset)
     print(f"Validation Loss: {val_loss}")
     print(f"Validation Accuracy: {val_accuracy}")
+    model.save('trained/models/keras_test.h5')
