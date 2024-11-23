@@ -1,5 +1,6 @@
 import os
 import os
+from pathlib import Path
 
 import cv2
 import imgaug as ia
@@ -15,8 +16,8 @@ from skimage.util import random_noise
 # import win32com.client
 
 
-def get_directories(directory_path: str):
-    return [entry for entry in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, entry))]
+def get_directories(directory_path: Path):
+    return [entry for entry in directory_path.iterdir() if entry.is_dir()]
 
 
 def get_files(directory_path: str):
@@ -29,7 +30,7 @@ def create_coin_directory(catalog_path: str, coin_country: str, coin_name: str, 
 
 
 
-def parse_directory_into_dictionary(dir_path: str):
+def parse_directory_into_dictionary(dir_path: Path):
     try:
         out_dict = {country: {} for country in get_directories(dir_path)}
         out_dict.pop("augmented", None)

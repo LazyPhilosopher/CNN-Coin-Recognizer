@@ -1,6 +1,7 @@
 import json
 import os
 from collections import defaultdict
+from pathlib import Path
 from random import random
 
 import cv2
@@ -16,25 +17,29 @@ from core.utilities.helper import parse_directory_into_dictionary, get_directori
 
 
 def format_dataset():
-    catalog_path = "./coin_catalog/augmented"
+    catalog_path = Path("coin_catalog/augmented")
 
     test_val_ratio = 0.8
 
     enum_dict = {}
     catalog_dict = defaultdict(dict)
-    for country in get_directories(catalog_path):
-        for coin_name in get_directories(os.path.join(catalog_path, country)):
-            for year in get_directories(coin_dir := os.path.join(catalog_path, country, coin_name)):
-                enum_dict[(country, coin_name, year)] = len(enum_dict)
+    for country_dir in get_directories(catalog_path):
+        for coin_dir in get_directories(country_dir):
+            for year_dir in get_directories(coin_dir):
+                enum_dict[(country := country_dir.parts[-1],
+                           coin_name := coin_dir.parts[-1],
+                           year := year_dir.parts[-1])] = len(enum_dict)
 
-                for filename in os.listdir(year_dir := os.path.join(coin_dir, year)):
-                    if filename.endswith("_full.png") or filename.endswith("_hue.png"):
-                        prefix = "_".join(filename.split("_")[:2])
+                for filepath in year_dir.iterdir():
+                    filename = filepath.parts[-1]
+                    if filename.endswith(suffix := "full.png") or filename.endswith(suffix := "hue.png"):
+                        # prefix = "_".join(filename.split("_")[:2])
+                        prefix = filename[:-(len(suffix)+1)]
 
-                        if filename.endswith("_full.png"):
-                            catalog_dict[(country, coin_name, year, prefix)]["full"] = os.path.join(year_dir, filename)
-                        elif filename.endswith("_hue.png"):
-                            catalog_dict[(country, coin_name, year, prefix)]["hue"] = os.path.join(year_dir, filename)
+                        if suffix == "full.png":
+                            catalog_dict[(country, coin_name, year, prefix)]["full"] = filepath
+                        elif suffix == "hue.png":
+                            catalog_dict[(country, coin_name, year, prefix)]["hue"] = filepath
 
     train_dict = defaultdict(dict)
     val_dict = defaultdict(dict)
@@ -49,38 +54,14 @@ def format_dataset():
     return enum_dict, train_dict, val_dict
 
 
-def load_and_preprocess_image(image_path, is_gray=False):
-    # Load and normalize images
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE if is_gray else cv2.IMREAD_COLOR)
-    image = cv2.resize(image, (128, 128))  # Resize all images to the same size
-    image = image / 255.0  # Normalize to [0, 1]
-    # if not is_gray:
-    #     image = np.expand_dims(image, axis=0)  # Add channel dimension
-    return image
-
-
-def create_dataset(data_dict, enumerations):
-    images_full, images_hue, labels = [], [], []
-
-    for idx, (key, paths) in enumerate(data_dict.items()):
-        # Load images
-        full_img = load_and_preprocess_image(paths["full"])
-        hue_img = load_and_preprocess_image(paths["hue"], is_gray=True)
-
-        images_full.append(full_img)
-        images_hue.append(hue_img)
-
-        # Map class to label
-        labels.append(enumerations[key[:3]])
-        print(f"\r{idx}/{len(data_dict)}", end="")
-
-
-    # Convert to TensorFlow tensors
-    images_full = tf.convert_to_tensor(images_full, dtype=tf.float32)
-    images_hue = tf.convert_to_tensor(images_hue, dtype=tf.float32)
-    labels = tf.convert_to_tensor(labels, dtype=tf.int32)
-
-    return tf.data.Dataset.from_tensor_slices(({"full_image": images_full, "hue_image": images_hue, "labels": labels}))
+# def load_and_preprocess_image(image_path, is_gray=False):
+#     # Load and normalize images
+#     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE if is_gray else cv2.IMREAD_COLOR)
+#     image = cv2.resize(image, (128, 128))  # Resize all images to the same size
+#     image = image / 255.0  # Normalize to [0, 1]
+#     # if not is_gray:
+#     #     image = np.expand_dims(image, axis=0)  # Add channel dimension
+#     return image
 
 
 def create_model(input_shape_full=(128, 128, 3), input_shape_hue=(128, 128, 1), num_classes=10):
@@ -111,76 +92,131 @@ def create_model(input_shape_full=(128, 128, 3), input_shape_hue=(128, 128, 1), 
     return model
 
 
-def create_example(full_image, hue_image, labels):
-    # Ensure the images are of type uint8 (scaling if necessary)
-    full_image = tf.cast(tf.clip_by_value(full_image * 255, 0, 255), tf.uint8)
-    hue_image = tf.cast(tf.clip_by_value(hue_image * 255, 0, 255), tf.uint8)
-    hue_image = tf.expand_dims(hue_image, axis=-1)
+def resize_image(image, target_size=(128, 128)):
+    """
+    Resize an image to the target size (default: 128x128).
 
-    # Encode the images as PNG
-    full_bytes = tf.io.encode_png(full_image)
-    hue_bytes = tf.io.encode_png(hue_image)
+    Args:
+        image (tf.Tensor): The input image tensor.
+        target_size (tuple): The desired size (height, width).
 
-    # Creating a feature dictionary to store as Example
-    feature = {
-        'full_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[full_bytes.numpy()])),
-        'hue_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[hue_bytes.numpy()])),
-        'label': tf.convert_to_tensor(labels, dtype=tf.int32)
-    }
-    example = tf.train.Example(features=tf.train.Features(feature=feature))
-    return example
+    Returns:
+        tf.Tensor: The resized image tensor.
+    """
+    return tf.image.resize(image, target_size, method=tf.image.ResizeMethod.BILINEAR)
 
 
-def parse_example(serialized_example):
-    feature_description = {
-        'full_image': tf.io.FixedLenFeature([], tf.string),
-        'hue_image': tf.io.FixedLenFeature([], tf.string),
-        'label': tf.io.FixedLenFeature([], tf.int64)
-    }
-    parsed = tf.io.parse_single_example(serialized_example, feature_description)
+def load_image_pair(entry):
+    """
+    Load and preprocess the image pair (full-color and hue) from the given dictionary entry.
+    """
+    full_image = tf.io.read_file(entry['full'])
+    full_image = tf.image.decode_png(full_image, channels=3)  # Decode as RGB
+    full_image = tf.image.convert_image_dtype(full_image, tf.float32)  # Normalize to [0, 1]
+    full_image = resize_image(full_image)
 
-    # Decode the images
-    full_image = tf.image.decode_png(parsed['full_image'], channels=3)
-    hue_image = tf.image.decode_png(parsed['hue_image'], channels=1)
-    label = parsed['label']
+    hue_image = tf.io.read_file(entry['hue'])
+    hue_image = tf.image.decode_png(hue_image, channels=1)  # Decode as grayscale
+    hue_image = tf.image.convert_image_dtype(hue_image, tf.float32)  # Normalize to [0, 1]
+    hue_image = resize_image(hue_image)
 
-    return {'full_image': full_image, 'hue_image': hue_image}, label
+    return full_image, hue_image
+
+
+def create_dataset(data_dict, enum_dict, target_size=(128, 128)):
+    """
+    Create a TensorFlow dataset with resized images, returning two inputs: full and hue.
+
+    Args:
+        data_dict (dict): Dictionary of data paths.
+        enum_dict (dict): Enumeration dictionary for labels.
+        target_size (tuple): Target image size (height, width).
+
+    Returns:
+        tf.data.Dataset: The dataset with ((full, hue), label) structure.
+    """
+    full_images, hue_images, labels = [], [], []
+
+    for idx, (key, entry) in enumerate(data_dict.items()):
+        # Load and preprocess images
+        full_image, hue_image = load_image_pair({'full': str(entry['full']), 'hue': str(entry['hue'])})
+
+        # Resize images
+        full_image = resize_image(full_image, target_size)
+        hue_image = resize_image(hue_image, target_size)
+
+        # Convert to uint8
+        full_image = tf.cast(full_image * 255, tf.uint8)  # Assumes full_image is normalized (0, 1)
+        hue_image = tf.cast(hue_image * 255, tf.uint8)  # Assumes hue_image is normalized (0, 1)
+
+        # Append data
+        full_images.append(full_image)
+        hue_images.append(hue_image)
+        labels.append(enum_dict[key[:3]])  # (Country, Coin, Year) key
+        print(f"=== \r{idx+1}/{len(data_dict)} ===", end="")
+
+    # Return dataset
+    return tf.data.Dataset.from_tensor_slices(((tf.stack(full_images), tf.stack(hue_images)), tf.constant(labels)))
+
+
+def save_dataset(dataset, file_path):
+    """
+    Save the dataset as a TFRecord file with two inputs: full and hue.
+    """
+
+    dir_path, filename = os.path.split(file_path)
+    os.makedirs(dir_path, exist_ok=True)
+
+    with tf.io.TFRecordWriter(file_path) as writer:
+        for (full_image, hue_image), label in dataset:
+            example = tf.train.Example(features=tf.train.Features(feature={
+                'full_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.encode_png(full_image).numpy()])),
+                'hue_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.encode_png(hue_image).numpy()])),
+                'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
+            }))
+            writer.write(example.SerializeToString())
+
+
+def load_saved_dataset(file_path):
+    """
+    Load a dataset from a TFRecord file with two inputs: full and hue.
+    """
+    if not tf.io.gfile.exists(file_path):
+        raise FileNotFoundError(f"TFRecord file not found: {file_path}")
+
+    raw_dataset = tf.data.TFRecordDataset(file_path)
+
+    def parse_example(example_proto):
+        feature_description = {
+            'full_image': tf.io.FixedLenFeature([], tf.string),
+            'hue_image': tf.io.FixedLenFeature([], tf.string),
+            'label': tf.io.FixedLenFeature([], tf.int64),
+        }
+        parsed_features = tf.io.parse_single_example(example_proto, feature_description)
+        full_image = tf.image.decode_png(parsed_features['full_image'], channels=3)
+        hue_image = tf.image.decode_png(parsed_features['hue_image'], channels=1)
+        label = parsed_features['label']
+
+        return (full_image, hue_image), label
+
+    return raw_dataset.map(parse_example)
 
 
 if __name__ == "__main__":
     enumerations, training_dict, validation_dict = format_dataset()
 
-    print("Training Dataset Creation:")
-    # try:
-    #     raw_dataset = tf.data.TFRecordDataset('trained/datasets/dataset.tfrecord')
-    #     train_dataset = raw_dataset.map(parse_example)
-    #
-    #     for features, label in train_dataset.take(1):
-    #         print("Full image shape:", features['full_image'].shape)
-    #         print("Hue image shape:", features['hue_image'].shape)
-    #         print("Label:", label.numpy())
-    # except:
-    train_dataset = create_dataset(training_dict, enumerations)
-    with tf.io.TFRecordWriter('trained/datasets/dataset.tfrecord') as writer:
-        for data in train_dataset:
-            example = create_example(data["full_image"], data["hue_image"], data["labels"])  # Convert image to serialized example
-            writer.write(example.SerializeToString())
-
-    print("Validation Dataset Creation:")
     try:
-        raw_dataset = tf.data.TFRecordDataset('trained/datasets/validation_dataset.tfrecord')
-        train_dataset = raw_dataset.map(parse_example)
+        train_dataset = load_saved_dataset('trained/datasets/train_dataset.tfrecord')
+        val_dataset = load_saved_dataset('trained/datasets/val_dataset.tfrecord')
 
-        for features, label in train_dataset.take(1):
-            print("Full image shape:", features['full_image'].shape)
-            print("Hue image shape:", features['hue_image'].shape)
-            print("Label:", label.numpy())
     except:
+        print("Training Dataset Creation:")
+        train_dataset = create_dataset(training_dict, enumerations)
+        print("Validation Dataset Creation:")
         val_dataset = create_dataset(validation_dict, enumerations)
-        with tf.io.TFRecordWriter('trained/datasets/validation_dataset.tfrecord') as writer:
-            for image, label in train_dataset:
-                example = create_example(image, label)
-                writer.write(example.SerializeToString())
+
+        save_dataset(train_dataset, "trained/datasets/train_dataset.tfrecord")
+        save_dataset(train_dataset, "trained/datasets/val_dataset.tfrecord")
 
     print("Train Dataset Shuffle")
     train_dataset = train_dataset.shuffle(buffer_size=1000).batch(32).prefetch(tf.data.AUTOTUNE)
