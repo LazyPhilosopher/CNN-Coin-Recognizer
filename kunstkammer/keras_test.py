@@ -225,7 +225,7 @@ def load_dataset(file_path):
     with open(file_path + '/element_spec', 'rb') as in_:
         es = pickle.load(in_)
 
-    return tf.data.experimental.load(
+    return tf.data.Dataset.load(
         file_path, es, compression='GZIP'
     )
 
@@ -269,14 +269,15 @@ if __name__ == "__main__":
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )
+        model = resnet512.get_model()
 
         print("Training Model")
-        history = resnet512.model.fit(
+        history = model.fit(
             train_dataset,
             validation_data=val_dataset,
             epochs=20
         )
-        resnet512.model.save(model_path)
+        model.save(model_path)
 
     else:
         print("Model already exists. Loading the model...")
