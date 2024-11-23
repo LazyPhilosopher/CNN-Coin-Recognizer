@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from PySide6.QtCore import QPoint, Slot, QTimer
 from PySide6.QtGui import QImage
@@ -16,7 +17,7 @@ from core.qt_communication.messages.video_module.Responses import CameraListResp
 from core.utilities.helper import parse_directory_into_dictionary, create_coin_directory, get_files, \
     crop_vertices_mask_from_image, get_tab_index_by_label
 
-catalog_dir = "coin_catalog"
+catalog_dir = Path("coin_catalog")
 
 
 class ImageCollector(QMainWindow, Ui_ImageCollector):
@@ -278,7 +279,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     def save_photo_button_callback(self):
         country, coin_name, year = self.get_dropbox_values()
 
-        idx = len(get_files(os.path.join(catalog_dir, country, coin_name, year, "uncropped")))
+        idx = len(get_files(Path(catalog_dir / country / coin_name / year / "uncropped")))
 
         self.video_frame.uncropped_image.save(
             os.path.join(catalog_dir, country, coin_name, year, "uncropped", str(idx)+'.png'), "PNG")
@@ -296,14 +297,14 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.image_idx += step
         country, coin_name, year = self.get_dropbox_values()
 
-        uncropped_dir_path = os.path.join(catalog_dir, country, coin_name, year, "uncropped")
-        cropped_dir_path = os.path.join(catalog_dir, country, coin_name, year, "cropped")
+        uncropped_dir_path = Path(catalog_dir / country / coin_name / year / "uncropped")
+        cropped_dir_path = Path(catalog_dir / country / coin_name / year / "cropped")
 
         uncropped_images = get_files(uncropped_dir_path)
         cropped_images = get_files(cropped_dir_path)
 
         if len(uncropped_images) == 0:
-            self.video_frame.set_image(uncropped_image=QImage("core/gui/pictures/default_image.jpg"), cropped_image=None)
+            self.video_frame.set_image(uncropped_image=QImage(Path("core", "gui", "pictures", "default_image.jpg")), cropped_image=None)
             idx = get_tab_index_by_label(self.tabWidget, "Gallery")
             self.tabWidget.widget(idx).setEnabled(False)
 
@@ -314,12 +315,12 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
             self.image_idx %= len(uncropped_images)
 
             image = uncropped_images[self.image_idx]
-            if image in cropped_images:
-                uncropped_image = QImage(os.path.join(uncropped_dir_path, image))
-                cropped_image = QImage(os.path.join(cropped_dir_path, image))
+            if any(path.name == image.name for path in cropped_images):
+                uncropped_image = QImage(uncropped_images[self.image_idx])
+                cropped_image = QImage(cropped_images[self.image_idx])
                 self.video_frame.set_image(cropped_image=cropped_image, uncropped_image=uncropped_image)
             else:
-                uncropped_image = QImage(os.path.join(uncropped_dir_path, image))
+                uncropped_image = QImage(uncropped_images[self.image_idx])
                 self.video_frame.set_image(cropped_image=None, uncropped_image=uncropped_image)
 
     def delete_background_button_callback(self):
@@ -368,12 +369,12 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
 
     def gallery_save_button_routine(self):
         country, coin_name, year = self.get_dropbox_values()
-        uncropped_dir_path = os.path.join(catalog_dir, country, coin_name, year, "uncropped")
-        cropped_dir_path = os.path.join(catalog_dir, country, coin_name, year, "cropped")
+        uncropped_dir_path = Path(catalog_dir / country / coin_name / year / "uncropped")
+        cropped_dir_path = Path(catalog_dir / country / coin_name / year / "cropped")
 
         uncropped_images = get_files(uncropped_dir_path)
         self.image_idx %= len(uncropped_images)
-        image_filename: str = uncropped_images[self.image_idx]
+        image_filename: str = uncropped_images[self.image_idx].parts[-1]
 
         image = self.video_frame.front_image_label.pixmap().toImage()
-        image.save(os.path.join(cropped_dir_path, image_filename), "PNG")
+        image.save(str(Path(cropped_dir_path / image_filename)), "PNG")

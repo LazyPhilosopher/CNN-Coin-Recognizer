@@ -20,8 +20,8 @@ def get_directories(directory_path: Path):
     return [entry for entry in directory_path.iterdir() if entry.is_dir()]
 
 
-def get_files(directory_path: str):
-    return [f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]
+def get_files(directory_path: Path):
+    return [f for f in directory_path.iterdir() if f.is_file()]
 
 
 def create_coin_directory(catalog_path: str, coin_country: str, coin_name: str, coin_year: str):
@@ -32,18 +32,23 @@ def create_coin_directory(catalog_path: str, coin_country: str, coin_name: str, 
 
 def parse_directory_into_dictionary(dir_path: Path):
     try:
-        out_dict = {country: {} for country in get_directories(dir_path)}
-        out_dict.pop("augmented", None)
+        out_dict = {country.parts[-1]: {} for country in get_directories(dir_path)}
+
+        pop_keys = []
+        for directory in out_dict:
+            if "augmented" in directory:
+                pop_keys.append(directory)
+        [out_dict.pop(key) for key in pop_keys]
 
         for country in out_dict.keys():
-            country_path = os.path.join(dir_path, country)
-            out_dict[country] = {coin_name: {} for coin_name in get_directories(country_path)}
+            country_path = Path(dir_path / country)
+            out_dict[country] = {coin_dir.parts[-1]: {} for coin_dir in get_directories(country_path)}
             for coin in out_dict[country].keys():
-                coin_path = os.path.join(dir_path, country, coin)
-                out_dict[country][coin] = {year: {
-                    "uncropped": get_files(os.path.join(coin_path, year, "uncropped")),
-                    "cropped": get_files(os.path.join(coin_path, year, "cropped"))
-                } for year in get_directories(coin_path)}
+                coin_path = Path(dir_path / country / coin)
+                out_dict[country][coin] = {year_dir.parts[-1]: {
+                    "uncropped": get_files(Path(year_dir / "uncropped")),
+                    "cropped": get_files(Path(year_dir / "cropped"))
+                } for year_dir in get_directories(coin_path)}
         return out_dict
     except:
         return None

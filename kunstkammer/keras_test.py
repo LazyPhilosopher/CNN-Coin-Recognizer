@@ -218,7 +218,7 @@ if __name__ == "__main__":
         history = model.fit(
             train_dataset,
             validation_data=val_dataset,
-            epochs=3
+            epochs=20
         )
         model.save(model_path)
 
