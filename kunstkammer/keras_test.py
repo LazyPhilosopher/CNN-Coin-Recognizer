@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
     print("Creating Model")
 
-    model_path = 'trained/models/keras_test.h5'
+    model_path = 'trained/models/keras_test.keras'
 
     # Check if the model already exists
     if not os.path.exists(model_path):
@@ -218,8 +218,9 @@ if __name__ == "__main__":
         history = model.fit(
             train_dataset,
             validation_data=val_dataset,
-            epochs=20
+            epochs=3
         )
+        model.save(model_path)
 
     else:
         print("Model already exists. Loading the model...")
@@ -229,4 +230,4 @@ if __name__ == "__main__":
     val_loss, val_accuracy = model.evaluate(val_dataset)
     print(f"Validation Loss: {val_loss}")
     print(f"Validation Accuracy: {val_accuracy}")
-    model.save('trained/models/keras_test.h5')
+
