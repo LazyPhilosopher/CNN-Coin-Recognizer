@@ -8,6 +8,9 @@ from random import random
 import cv2
 import numpy as np
 import tensorflow as tf
+from keras.src.applications.resnet_v2 import ResNet152V2
+from keras.src.layers import GlobalAveragePooling2D, BatchNormalization
+from keras.src.optimizers import Adam
 
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense, Dropout, Concatenate
 from tensorflow.keras.models import Model
@@ -16,15 +19,12 @@ from core.gui.ImageCollector import catalog_dir
 from core.utilities.helper import parse_directory_into_dictionary, get_directories
 
 
-
-def format_dataset():
-    catalog_path = Path("coin_catalog/augmented")
-
+def format_dataset(dataset_path):
     test_val_ratio = 0.8
 
     enum_dict = {}
     catalog_dict = defaultdict(dict)
-    for country_dir in get_directories(catalog_path):
+    for country_dir in get_directories(dataset_path):
         for coin_dir in get_directories(country_dir):
             for year_dir in get_directories(coin_dir):
                 enum_dict[(country := country_dir.parts[-1],
@@ -83,6 +83,86 @@ def create_model(input_shape_full=(128, 128, 3), input_shape_hue=(128, 128, 1), 
     return model
 
 
+class ResNet152V2Classifier:
+    def __init__(self, full_input_shape=(224, 224, 3), hue_input_shape=(224, 224, 1), num_classes=14, learning_rate=0.001, train_base=False):
+        """
+        Initialize the ResNet152V2Classifier.
+
+        Parameters:
+            full_input_shape (tuple): Shape of input images (height, width, channels) for full image.
+            hue_input_shape (tuple): Shape of input images (height, width, channels) for hue image.
+            num_classes (int): Number of output classes.
+            learning_rate (float): Learning rate for the optimizer.
+            train_base (bool): If True, the base model is trainable for fine-tuning.
+        """
+        self.full_input_shape = full_input_shape
+        self.hue_input_shape = hue_input_shape
+        self.num_classes = num_classes
+        self.learning_rate = learning_rate
+        self.train_base = train_base
+        self.model = self._build_model()
+
+    def _build_model(self):
+        """
+        Builds the ResNet152V2 model with a custom classification head for both full and HUE images.
+
+        Returns:
+            model (tf.keras.Model): The compiled model.
+        """
+        # Load the ResNet152V2 model pre-trained on ImageNet
+        base_model = ResNet152V2(
+            include_top=False,
+            weights="imagenet",
+            input_shape=self.full_input_shape
+        )
+
+        # Freeze the base model layers if train_base is False
+        base_model.trainable = self.train_base
+
+        # Define inputs for full and HUE images
+        full_image = Input(shape=self.full_input_shape, name="full_image")
+        hue_image = Input(shape=self.hue_input_shape, name="hue_image")
+
+        # Process full image through the ResNet backbone
+        full_x = base_model(full_image, training=not self.train_base)
+        full_x = GlobalAveragePooling2D()(full_x)
+
+        # Process hue image through simple convolution layers
+        hue_x = Conv2D(32, (3, 3), padding="same", activation="relu")(hue_image)
+        hue_x = BatchNormalization()(hue_x)
+        hue_x = Conv2D(64, (3, 3), padding="same", activation="relu")(hue_x)
+        hue_x = BatchNormalization()(hue_x)
+        hue_x = GlobalAveragePooling2D()(hue_x)
+
+        # Concatenate the features from both inputs
+        combined = Concatenate()([full_x, hue_x])
+
+        # Add custom dense layers
+        x = Dense(512, activation="relu")(combined)
+        outputs = Dense(self.num_classes, activation="softmax")(x)
+
+        # Create the full model with two inputs (full_image, hue_image) and one output
+        model = Model(inputs={"full_image": full_image, "hue_image": hue_image}, outputs=outputs)
+
+        # Compile the model
+        model.compile(
+            optimizer=Adam(learning_rate=self.learning_rate),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"]
+        )
+
+        return model
+
+    def get_model(self):
+        """
+        Returns the built Keras model.
+
+        Returns:
+            model (tf.keras.Model): The compiled model.
+        """
+        return self.model
+
+
 def resize_image(image, target_size=(128, 128)):
     return tf.image.resize(image, target_size, method=tf.image.ResizeMethod.BILINEAR)
 
@@ -123,21 +203,15 @@ def create_dataset(data_dict, enum_dict, target_size=(128, 128)):
         print(f"=== \r{idx+1}/{len(data_dict)} ===", end="")
 
     # Return dataset
-    return tf.data.Dataset.from_tensor_slices(((tf.stack(full_images), tf.stack(hue_images)), tf.constant(labels)))
-
-
-# def save_dataset(dataset, file_path):
-#     dir_path, filename = os.path.split(file_path)
-#     os.makedirs(dir_path, exist_ok=True)
-#
-#     with tf.io.TFRecordWriter(file_path) as writer:
-#         for (full_image, hue_image), label in dataset:
-#             example = tf.train.Example(features=tf.train.Features(feature={
-#                 'full_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.encode_png(full_image).numpy()])),
-#                 'hue_image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.encode_png(hue_image).numpy()])),
-#                 'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
-#             }))
-#             writer.write(example.SerializeToString())
+    return tf.data.Dataset.from_tensor_slices(
+        (
+            {
+                "full_image": tf.stack(full_images),  # Assign key 'full_image'
+                "hue_image": tf.stack(hue_images)    # Assign key 'hue_image'
+            },
+            tf.constant(labels)  # The labels
+        )
+    )
 
 def save_dataset(dataset, file_path):
     tf.data.experimental.save(
@@ -155,72 +229,54 @@ def load_dataset(file_path):
         file_path, es, compression='GZIP'
     )
 
-# def load_saved_dataset(file_path):
-#     if not tf.io.gfile.exists(file_path):
-#         raise FileNotFoundError(f"TFRecord file not found: {file_path}")
-#
-#     raw_dataset = tf.data.TFRecordDataset(file_path)
-#
-#     def parse_example(example_proto):
-#         feature_description = {
-#             'full_image': tf.io.FixedLenFeature([], tf.string),
-#             'hue_image': tf.io.FixedLenFeature([], tf.string),
-#             'label': tf.io.FixedLenFeature([], tf.int64),
-#         }
-#         parsed_features = tf.io.parse_single_example(example_proto, feature_description)
-#
-#         full_image = tf.image.decode_png(parsed_features['full_image'], channels=3)
-#         hue_image = tf.image.decode_png(parsed_features['hue_image'], channels=1)
-#         label = parsed_features['label']
-#
-#         return {'full_image': full_image, 'hue_image': hue_image}, label
-#
-#     return raw_dataset.map(parse_example)
-
 
 if __name__ == "__main__":
-    enumerations, training_dict, validation_dict = format_dataset()
+    # catalog_path = Path("coin_catalog/augmented")
+    catalog_path = Path("coin_catalog/augmented_micro")
+    testrun_name = "ResNet512V2"
+    shape = (224, 224)
+
+    enumerations, training_dict, validation_dict = format_dataset(catalog_path)
 
     try:
-        train_dataset = load_dataset('trained/datasets/train_dataset.tfrecord')
-        val_dataset = load_dataset('trained/datasets/val_dataset.tfrecord')
+        train_dataset = load_dataset(f"trained/datasets/train_dataset_{testrun_name}.tfrecord")
+        val_dataset = load_dataset(f"trained/datasets/val_dataset_{testrun_name}.tfrecord")
 
     except:
         print("Training Dataset Creation:")
-        train_dataset = create_dataset(training_dict, enumerations)
+        train_dataset = create_dataset(training_dict, enumerations, target_size=shape)
         print("Validation Dataset Creation:")
-        val_dataset = create_dataset(validation_dict, enumerations)
+        val_dataset = create_dataset(validation_dict, enumerations, target_size=shape)
 
-        save_dataset(train_dataset, "trained/datasets/train_dataset.tfrecord")
-        save_dataset(train_dataset, "trained/datasets/val_dataset.tfrecord")
+        save_dataset(train_dataset, f"trained/datasets/train_dataset_{testrun_name}.tfrecord")
+        save_dataset(train_dataset, f"trained/datasets/val_dataset_{testrun_name}.tfrecord")
 
     print("Train Dataset Shuffle")
     train_dataset = train_dataset.shuffle(buffer_size=1000).batch(32).prefetch(tf.data.AUTOTUNE)
     print("Validation Dataset Shuffle")
     val_dataset = val_dataset.batch(32).prefetch(tf.data.AUTOTUNE)
 
+
     print("Creating Model")
-
-    model_path = 'trained/models/keras_test.keras'
-
-    # Check if the model already exists
+    model_path = f"trained/models/keras_{testrun_name}.keras"
     if not os.path.exists(model_path):
         print("Model does not exist. Creating a new model...")
-        model = create_model(num_classes=len(enumerations))
+        # model = create_model(num_classes=len(enumerations))
+        resnet512 = ResNet152V2Classifier(num_classes=len(enumerations))
 
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(),  # New optimizer instance
+        resnet512.model.compile(
+            optimizer=tf.keras.optimizers.Adam(),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )
 
         print("Training Model")
-        history = model.fit(
+        history = resnet512.model.fit(
             train_dataset,
             validation_data=val_dataset,
             epochs=20
         )
-        model.save(model_path)
+        resnet512.model.save(model_path)
 
     else:
         print("Model already exists. Loading the model...")
