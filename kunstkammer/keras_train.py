@@ -262,7 +262,7 @@ def create_dataset(data_dict, enum_dict, target_size=(128, 128)):
         full_images.append(full_image)
         hue_images.append(hue_image)
         labels.append(enum_dict[key[:3]])  # (Country, Coin, Year) key
-        print(f"=== \r{idx+1}/{len(data_dict)} ===", end="")
+        print(f"\r=== {idx+1}/{len(data_dict)} ===", end="")
     print("\n")
 
     # Return dataset
@@ -348,7 +348,7 @@ if __name__ == "__main__":
         history = resnet512.model.fit(
             train_dataset,
             validation_data=val_dataset,
-            epochs=10
+            epochs=20
         )
 
         single_input_model = resnet512.get_single_input_model()

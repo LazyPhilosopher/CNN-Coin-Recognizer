@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import os
 from pathlib import Path
 
@@ -6,6 +8,7 @@ import cv2
 import imgaug as ia
 import imgaug.augmenters as iaa
 import numpy as np
+import tensorflow as tf
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QTabWidget
 from rembg import remove
@@ -175,13 +178,13 @@ def apply_transformations(full_image, hue_image):
 
     return image1_final, image2_final
 
-def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray):
+def imgaug_transformation(image: np.ndarray, mask: np.ndarray):
     # Ensure the images are contiguous arrays (important for memory layout)
     # contiguous_image_list = [np.ascontiguousarray(full_image.copy()) for full_image in full_image_list]
     # contiguous_hue_list = [np.ascontiguousarray(hue_image.copy()) for hue_image in hue_image_list]
 
-    full_image = np.ascontiguousarray(full_image)
-    hue_image = np.ascontiguousarray(hue_image)
+    image = np.ascontiguousarray(image)
+    mask = np.ascontiguousarray(mask)
 
     # Set a deterministic random state for reproducibility
 
@@ -214,11 +217,11 @@ def imgaug_transformation(full_image: np.ndarray, hue_image: np.ndarray):
     seq_noise_det = seq_noise.to_deterministic()
 
     # Apply the same deterministic transformation to both images
-    temp_image_aug = seq_common_det.augment_image(full_image)
-    full_image_aug = seq_noise_det.augment_image(temp_image_aug)
-    hue_image_aug = seq_common_det.augment_image(hue_image)
+    temp_image = seq_common_det.augment_image(image)
+    image_aug = seq_noise_det.augment_image(temp_image)
+    mask_aug = seq_common_det.augment_image(mask)
 
-    return full_image_aug, hue_image_aug
+    return image_aug, mask_aug
 
 
 def get_tab_index_by_label(tab_widget: QTabWidget, label: str) -> int:
@@ -226,3 +229,32 @@ def get_tab_index_by_label(tab_widget: QTabWidget, label: str) -> int:
         if tab_widget.tabText(index) == label:
             return index
     return -1
+
+def resize_image(image, target_size=(128, 128)):
+    return tf.image.resize(image, target_size, method=tf.image.ResizeMethod.BILINEAR)
+
+
+def transparent_to_mask(image):
+    """
+    Converts a transparent image (ndarray with an alpha channel) to a mask.
+    Transparent pixels are set to (0, 0, 0), and non-transparent pixels are set to (1, 1, 1).
+
+    Parameters:
+        image (ndarray): Input image with shape (H, W, 4), where the last channel is the alpha channel.
+
+    Returns:
+        mask (ndarray): Output mask with shape (H, W, 3), where values are (0, 0, 0) or (1, 1, 1).
+    """
+    if image.shape[-1] != 4:
+        raise ValueError("Input image must have an alpha channel (shape should be HxWx4).")
+
+    # Extract the alpha channel
+    alpha_channel = image[..., 3]
+
+    # Create a binary mask: 1 for non-transparent pixels, 0 for transparent pixels
+    binary_mask = np.where(alpha_channel > 0, 1, 0).astype(np.uint8)
+
+    # Expand the binary mask to 3 channels (H, W, 3)
+    mask = np.repeat(binary_mask[..., np.newaxis], 3, axis=-1)
+
+    return mask

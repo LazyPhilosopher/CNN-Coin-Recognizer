@@ -3,13 +3,14 @@ import os
 import sys
 import time
 from multiprocessing import Process
+from pathlib import Path
+import tensorflow as tf
 
-from PIL.ImageQt import QImage
+from PySide6.QtGui import QImage
 from PySide6.QtCore import QTimer, QObject, QCoreApplication
 
 from core.utilities.helper import parse_directory_into_dictionary, qimage_to_cv2, imgaug_transformation, cv2_to_qimage, \
-    transparent_to_hue
-
+    transparent_to_hue, transparent_to_mask
 
 # ANSI escape codes for coloring
 COLOR_GREEN = "\033[92m"
@@ -43,7 +44,7 @@ for handler in logger.handlers:
     handler.setFormatter(CustomFormatter('%(asctime)s - [%(processName)s - PID:%(process)d] - %(message)s', datefmt="%H:%M:%S"))
 
 
-catalog_path = "coin_catalog"
+catalog_path = Path("coin_catalog")
 
 
 def split_path(path):
@@ -59,19 +60,20 @@ def augment(augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_pat
 
     cv2_uncropped_image = qimage_to_cv2(uncropped_image)
     cv2_cropped_image = qimage_to_cv2(cropped_image)
+    cv2_cropped_mask = transparent_to_mask(cv2_cropped_image)
 
-    for i in range(200):
-        cv2_augmented_uncropped_image, cv2_augmented_croped_image = (
-            imgaug_transformation(full_image=cv2_uncropped_image, hue_image=cv2_cropped_image))
+    for i in range(20):
+        cv2_augmented_image, cv2_augmented_mask = (
+            imgaug_transformation(image=cv2_uncropped_image, mask=cv2_cropped_mask))
 
-        full_image = cv2_to_qimage(cv2_augmented_uncropped_image)
-        cv2_hue_image = transparent_to_hue(cv2_augmented_croped_image)
-        croped_image = cv2_to_qimage(cv2_hue_image)
+        image = cv2_to_qimage(cv2_augmented_image)
+        # cv2_hue_image = transparent_to_hue(cv2_augmented_croped_image)
+        mask = cv2_to_qimage(cv2_augmented_mask)
 
-        full_image.save(
-            os.path.join(f"{os.path.join(augmentation_path, filename_without_extension)}_{i}_full.png"))
-        croped_image.save(
-            os.path.join(f"{os.path.join(augmentation_path, filename_without_extension)}_{i}_hue.png"))
+        image.save(
+            os.path.join(f"{os.path.join(augmentation_path, filename_without_extension)}_{i}_image.png"))
+        mask.save(
+            os.path.join(f"{os.path.join(augmentation_path, filename_without_extension)}_{i}_mask.png"))
 
 
 def get_augmentation_tasks():
@@ -84,17 +86,20 @@ def get_augmentation_tasks():
             for year in catalog_dict[country][coin_name].keys():
                 os.makedirs(os.path.join(catalog_path, country, coin_name, year), exist_ok=True)
 
+                cropped_filenames = [path.name for path in catalog_dict[country][coin_name][year]["cropped"]]
+
                 for coin_photo in catalog_dict[country][coin_name][year]["uncropped"]:
 
-                    if not coin_photo in catalog_dict[country][coin_name][year]["cropped"]:
+                    if not coin_photo.name in cropped_filenames:
                         continue
 
                     augmentation_path = os.path.join(catalog_path, "augmented", country, coin_name, year)
                     os.makedirs(augmentation_path, exist_ok=True)
 
 
-                    cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "cropped", coin_photo)
-                    uncropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "uncropped", coin_photo)
+                    # cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "cropped", coin_photo.name)
+                    uncropped_coin_photo_path = coin_photo
+                    cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "cropped", coin_photo.name)
 
                     # augment(augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_path)
                     out.append((augmentation_path, uncropped_coin_photo_path, cropped_coin_photo_path))
@@ -172,9 +177,23 @@ class WorkerManager(QObject):
 
 
 if __name__ == "__main__":
+    print(f"Available devices: {tf.config.list_physical_devices()}")
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if physical_devices:
+        print(f"Running on GPU: {physical_devices}")
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+            except RuntimeError as e:
+                print(e)
+    else:
+        print("Running on CPU")
+
     app = QCoreApplication(sys.argv)
 
-    manager = WorkerManager(process_count=100)
+    manager = WorkerManager(process_count=80)
     aug_tasks = get_augmentation_tasks()
 
     manager.run_workers(aug_tasks)
