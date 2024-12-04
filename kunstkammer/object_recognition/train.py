@@ -1,5 +1,4 @@
 import os
-from glob import glob
 from pathlib import Path
 
 import numpy as np
@@ -7,11 +6,10 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten
-from tensorflow.keras.models import Sequential
+from tensorflow.python.ops.array_ops import shape
 
 from core.utilities.helper import get_directories
-
+from kunstkammer.object_recognition.model import build_model
 
 if __name__=="__main__":
     catalog_path = Path("coin_catalog/augmented")
@@ -23,6 +21,7 @@ if __name__=="__main__":
     num_epochs = 20
     validation_split = 0.2
     batch_size = 1
+    lr = 1e-3
 
     seed = 42
     np.random.seed(seed)
@@ -66,34 +65,29 @@ if __name__=="__main__":
 
     """ Model """
     if not os.path.exists(model_path):
-        model = Sequential([
-            layers.Rescaling(1. / 255),
-            Conv2D(16, 3, padding='same', activation='relu'),
-            MaxPooling2D(),
-            Conv2D(32, 3, padding='same', activation='relu'),
-            MaxPooling2D(),
-            Conv2D(64, 3, padding='same', activation='relu'),
-            MaxPooling2D(),
-            Dropout(0.2),
-            Flatten(),
-            Dense(128, activation='relu'),
-            Dense(len(enumerations))
-        ])
+        model = build_model(input_shape=(*image_shape, 3), num_classes=len(enumerations))
 
     else:
         print("Model already exists. Loading the model...")
         model = tf.keras.models.load_model(model_path)
 
     """ Training """
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=lr,
+        decay_steps=1000,  # Adjust this based on dataset size and batch size
+        decay_rate=0.96,  # Factor by which to decay
+        staircase=True  # If True, the learning rate decays in discrete steps
+    )
+
     model.compile(
-        optimizer='adam',
+        optimizer=tf.keras.optimizers.SGD(learning_rate=lr_schedule),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
         metrics=['accuracy']
     )
 
     callbacks = [
-        ModelCheckpoint("model.h5", save_best_only=True),
-        ReduceLROnPlateau(factor=0.1, patience=5),
+        ModelCheckpoint(model_path, save_best_only=True),
+        # ReduceLROnPlateau(factor=0.1, patience=5),
         EarlyStopping(patience=10)
     ]
 
