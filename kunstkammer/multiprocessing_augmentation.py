@@ -53,7 +53,7 @@ def split_path(path):
     return components
 
 
-def augment(augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_path):
+def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin_photo_path):
     uncropped_image = QImage(uncropped_coin_photo_path)
     cropped_image = QImage(cropped_coin_photo_path)
     filename_without_extension = os.path.splitext(os.path.basename(uncropped_coin_photo_path))[0]
@@ -62,24 +62,30 @@ def augment(augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_pat
     cv2_cropped_image = qimage_to_cv2(cropped_image)
     cv2_cropped_mask = transparent_to_mask(cv2_cropped_image)
 
-    for i in range(20):
-        cv2_augmented_image, cv2_augmented_mask = (
-            imgaug_transformation(image=cv2_uncropped_image, mask=cv2_cropped_mask))
+    for i in range(30):
+        cv2_augmented_image, cv2_augmented_mask, cv2_augmented_crop = (
+            imgaug_transformation(image=cv2_uncropped_image, mask=cv2_cropped_mask, transparent=cv2_cropped_image))
 
         image = cv2_to_qimage(cv2_augmented_image)
         # cv2_hue_image = transparent_to_hue(cv2_augmented_croped_image)
         mask = cv2_to_qimage(cv2_augmented_mask)
+        crop = cv2_to_qimage(cv2_augmented_crop)
 
         image.save(
-            os.path.join(f"{os.path.join(augmentation_path, filename_without_extension)}_{i}_image.png"))
+            os.path.join(f"{os.path.join(augmentation_path, 'images', coin_dir, filename_without_extension)}_{i}.png"))
         mask.save(
-            os.path.join(f"{os.path.join(augmentation_path, filename_without_extension)}_{i}_mask.png"))
+            os.path.join(f"{os.path.join(augmentation_path, 'masks', coin_dir, filename_without_extension)}_{i}.png"))
+        crop.save(
+            os.path.join(f"{os.path.join(augmentation_path, 'crops', coin_dir, filename_without_extension)}_{i}.png"))
 
 
 def get_augmentation_tasks():
     out = []
     catalog_dict = parse_directory_into_dictionary(catalog_path)
     os.makedirs(os.path.join(catalog_path, "augmented"), exist_ok=True)
+    os.makedirs(os.path.join(catalog_path, "augmented", "images"), exist_ok=True)
+    os.makedirs(os.path.join(catalog_path, "augmented", "masks"), exist_ok=True)
+    os.makedirs(os.path.join(catalog_path, "augmented", "crops"), exist_ok=True)
 
     for country in catalog_dict.keys():
         for coin_name in catalog_dict[country].keys():
@@ -93,24 +99,32 @@ def get_augmentation_tasks():
                     if not coin_photo.name in cropped_filenames:
                         continue
 
-                    augmentation_path = os.path.join(catalog_path, "augmented", country, coin_name, year)
-                    os.makedirs(augmentation_path, exist_ok=True)
+                    dir_name = str((country, coin_name, year)).replace("'", "")
+                    augmentation_path = os.path.join(catalog_path, "augmented")
+                    # mask_augmentation_path = os.path.join(catalog_path, "augmented", "masks", dir_name)
+                    # cropped_augmentation_path = os.path.join(catalog_path, "augmented", "cropped", dir_name)
+                    os.makedirs(os.path.join(catalog_path, "augmented", "images", dir_name), exist_ok=True)
+                    os.makedirs(os.path.join(catalog_path, "augmented", "masks", dir_name), exist_ok=True)
+                    os.makedirs(os.path.join(catalog_path, "augmented", "crops", dir_name), exist_ok=True)
 
+                    # os.makedirs(mask_augmentation_path, exist_ok=True)
+                    # os.makedirs(cropped_augmentation_path, exist_ok=True)
 
                     # cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "cropped", coin_photo.name)
                     uncropped_coin_photo_path = coin_photo
                     cropped_coin_photo_path = os.path.join(catalog_path, country, coin_name, year, "cropped", coin_photo.name)
 
                     # augment(augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_path)
-                    out.append((augmentation_path, uncropped_coin_photo_path, cropped_coin_photo_path))
+                    out.append((augmentation_path, dir_name, uncropped_coin_photo_path, cropped_coin_photo_path))
     return out
 
 
 
 class Worker:
-    def __init__(self, name, augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_path):
+    def __init__(self, name, augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin_photo_path):
         self.name = name
         self.augmentation_path = augmentation_path
+        self.coin_dir = coin_dir
         self.cropped_coin_photo_path = cropped_coin_photo_path
         self.uncropped_coin_photo_path = uncropped_coin_photo_path
         _, self.country, self.coin, self.year, _, _ = split_path(uncropped_coin_photo_path)
@@ -118,7 +132,7 @@ class Worker:
     def run(self):
         worker_name = f"{COLOR_BLUE}Worker [{self.name}] sec"
         logging.info(f"{worker_name}: {COLOR_BLUE}started.{COLOR_RESET}")
-        augment(self.augmentation_path, self.cropped_coin_photo_path, self.uncropped_coin_photo_path)
+        augment(self.augmentation_path, self.coin_dir, self.cropped_coin_photo_path, self.uncropped_coin_photo_path)
         logging.info(f"{worker_name}: {COLOR_BLUE}finished.{COLOR_RESET}")
 
 
@@ -144,11 +158,11 @@ class WorkerManager(QObject):
     def _assign_tasks(self):
         # Assign tasks if there are available slots
         while len(self.running_processes) < self.max_processes and self.pending_tasks:
-            augmentation_path, uncropped_coin_photo_path, cropped_coin_photo_path = self.pending_tasks.pop(0)
+            augmentation_path, coin_dir, uncropped_coin_photo_path, cropped_coin_photo_path = self.pending_tasks.pop(0)
             _, country, coin, year, _, pic = split_path(uncropped_coin_photo_path)
             name = f"{country}/{coin}/{year}/{pic}"
 
-            worker = Worker(name, augmentation_path, cropped_coin_photo_path, uncropped_coin_photo_path)
+            worker = Worker(name, augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin_photo_path)
 
             # Start Worker in a new multiprocessing Process
             worker_process = Process(target=worker.run, name=f"{COLOR_GREEN}Worker [{name}]{COLOR_RESET}")
@@ -193,7 +207,7 @@ if __name__ == "__main__":
 
     app = QCoreApplication(sys.argv)
 
-    manager = WorkerManager(process_count=80)
+    manager = WorkerManager(process_count=75)
     aug_tasks = get_augmentation_tasks()
 
     manager.run_workers(aug_tasks)

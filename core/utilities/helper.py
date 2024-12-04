@@ -178,13 +178,14 @@ def apply_transformations(full_image, hue_image):
 
     return image1_final, image2_final
 
-def imgaug_transformation(image: np.ndarray, mask: np.ndarray):
+def imgaug_transformation(image: np.ndarray, mask: np.ndarray, transparent: np.ndarray):
     # Ensure the images are contiguous arrays (important for memory layout)
     # contiguous_image_list = [np.ascontiguousarray(full_image.copy()) for full_image in full_image_list]
     # contiguous_hue_list = [np.ascontiguousarray(hue_image.copy()) for hue_image in hue_image_list]
 
     image = np.ascontiguousarray(image)
     mask = np.ascontiguousarray(mask)
+    transparent = np.ascontiguousarray(transparent)
 
     # Set a deterministic random state for reproducibility
 
@@ -219,9 +220,14 @@ def imgaug_transformation(image: np.ndarray, mask: np.ndarray):
     # Apply the same deterministic transformation to both images
     temp_image = seq_common_det.augment_image(image)
     image_aug = seq_noise_det.augment_image(temp_image)
+    temp_crop = seq_common_det.augment_image(transparent)
+    crop_aug = seq_noise_det.augment_image(temp_crop[:, :, :3])
+    crop_aug = np.concatenate([crop_aug, np.expand_dims(temp_crop[:, :, 3], axis=-1)], axis=-1)
     mask_aug = seq_common_det.augment_image(mask)
 
-    return image_aug, mask_aug
+    # crop_aug = tf.where(mask_aug[:, :, 3:4] == 0, tf.zeros_like(crop_aug), crop_aug)
+
+    return image_aug, mask_aug, crop_aug
 
 
 def get_tab_index_by_label(tab_widget: QTabWidget, label: str) -> int:
