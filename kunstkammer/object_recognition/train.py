@@ -33,7 +33,7 @@ if __name__=="__main__":
         os.makedirs(output_dir)
 
     crops_path = Path(catalog_path, "crops")
-    model_path = Path(output_dir, f"keras_{testrun_name}.keras")
+    model_path = Path(output_dir, f"object_recognition_{testrun_name}.keras")
     crops_dataset_path = Path(output_dir, f"crops_dataset_{testrun_name}.tfrecord")
     enum_path = f"trained/enumerations/train_enum_{testrun_name}.json"
 
@@ -46,7 +46,7 @@ if __name__=="__main__":
 
     except:
         crop_dataset = tf.keras.utils.image_dataset_from_directory(str(crops_path),
-                                                               seed=123,
+                                                               seed=seed,
                                                                batch_size=batch_size,
                                                                image_size=image_shape)
 
