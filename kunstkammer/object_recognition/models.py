@@ -23,7 +23,7 @@ def build_model(input_shape=(224, 224, 3), num_classes=10, use_pretrained=True):
     return model
 
 
-def build_resnet34_model(input_shape=(224, 224, 3), num_classes=10, use_pretrained=True):
+def build_resnet34_model(input_shape=(224, 224, 4), num_classes=10, use_pretrained=True):
     """
     Builds a ResNet34 model using a custom approach (or you can use timm for official ResNet34).
 

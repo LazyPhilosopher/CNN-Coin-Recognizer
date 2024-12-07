@@ -8,7 +8,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 from core.utilities.helper import get_directories
-from kunstkammer.object_recognition.model_ResNet50V2 import build_model, build_resnet34_model
+from kunstkammer.object_recognition.models import build_model, build_resnet34_model
 
 if __name__=="__main__":
     catalog_path = Path("coin_catalog/augmented")
@@ -64,7 +64,7 @@ if __name__=="__main__":
 
     """ Model """
     if not os.path.exists(model_path):
-        model = build_resnet34_model(input_shape=(*image_shape, 3), num_classes=len(enumerations))
+        model = build_resnet34_model(input_shape=(*image_shape, 4), num_classes=len(enumerations))
 
     else:
         print("Model already exists. Loading the model...")

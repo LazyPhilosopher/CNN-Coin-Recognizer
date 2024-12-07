@@ -64,7 +64,7 @@ def build_model(input_shape):
     d1 = decoder_block(b1, s4, 512)
     d2 = decoder_block(d1, s3, 256)
     d3 = decoder_block(d2, s2, 128)
-    d4 = decoder_block(d3, s1, 64)
+    # d4 = decoder_block(d3, s1, 64)
     # print(d1.shape, d2.shape, d3.shape, d4.shape)
 
     y1 = UpSampling2D((8, 8), interpolation="bilinear")(d1)
@@ -76,9 +76,10 @@ def build_model(input_shape):
     y3 = UpSampling2D((2, 2), interpolation="bilinear")(d3)
     y3 = Conv2D(1, 1, padding="same", activation="sigmoid")(y3)
 
-    y4 = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)
+    # y4 = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)
 
-    outputs = Concatenate()([y1, y2, y3, y4])
+    # outputs = Concatenate()([y1, y2, y3, y4])
+    outputs = Concatenate()([y1, y2, y3])
 
     model = Model(inputs, outputs, name="U-Net")
     return model

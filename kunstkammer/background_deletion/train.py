@@ -33,7 +33,8 @@ def load_image(image_path, size, add_aplha=False):
 
 def process_pair(input_path, output_path):
     input_image = load_image(input_path, image_shape)
-    output_image = load_image(output_path, image_shape, add_aplha=True)
+    # output_image = load_image(output_path, image_shape, add_aplha=True)
+    output_image = load_image(output_path, image_shape)
     return input_image, output_image
 
 
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     """ Hyperparemeters """
     image_shape = (128, 128)
 
-    testrun_name = "test"
+    testrun_name = "final"
     num_epochs = 20
     validation_split = 0.2
     batch_size = 1
