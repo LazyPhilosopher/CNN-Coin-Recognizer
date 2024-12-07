@@ -5,11 +5,10 @@ import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers
-from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
-from tensorflow.python.ops.array_ops import shape
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 from core.utilities.helper import get_directories
-from kunstkammer.object_recognition.model import build_model
+from kunstkammer.object_recognition.model_ResNet50V2 import build_model, build_resnet34_model
 
 if __name__=="__main__":
     catalog_path = Path("coin_catalog/augmented")
@@ -17,8 +16,8 @@ if __name__=="__main__":
     """ Hyperparemeters """
     image_shape = (128, 128)
 
-    testrun_name = "test"
-    num_epochs = 20
+    testrun_name = "ResNet50"
+    num_epochs = 30
     validation_split = 0.2
     batch_size = 1
     lr = 1e-3
@@ -65,7 +64,7 @@ if __name__=="__main__":
 
     """ Model """
     if not os.path.exists(model_path):
-        model = build_model(input_shape=(*image_shape, 3), num_classes=len(enumerations))
+        model = build_resnet34_model(input_shape=(*image_shape, 3), num_classes=len(enumerations))
 
     else:
         print("Model already exists. Loading the model...")
@@ -94,7 +93,7 @@ if __name__=="__main__":
     history = model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=20,
+        epochs=num_epochs,
         callbacks=callbacks
     )
 
