@@ -62,7 +62,7 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
     cv2_cropped_image = qimage_to_cv2(cropped_image)
     cv2_cropped_mask = transparent_to_mask(cv2_cropped_image)
 
-    for i in range(30):
+    for i in range(200):
         cv2_augmented_image, cv2_augmented_mask, cv2_augmented_crop = (
             imgaug_transformation(image=cv2_uncropped_image, mask=cv2_cropped_mask, transparent=cv2_cropped_image))
 

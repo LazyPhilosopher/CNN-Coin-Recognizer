@@ -65,15 +65,15 @@ def construct_pairs(x_dir_path: Path, y_dir_path: Path):
 
 
 if __name__ == "__main__":
-    catalog_path = Path("coin_catalog/augmented")
+    catalog_path = Path("coin_catalog/augmented_30")
 
     """ Hyperparemeters """
     image_shape = (128, 128)
 
-    testrun_name = "final"
-    num_epochs = 20
+    testrun_name = "small"
+    num_epochs = 15
     validation_split = 0.2
-    batch_size = 1
+    batch_size = 32
     lr = 3e-4
 
     seed = 42
@@ -84,9 +84,9 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "trained")):
         os.makedirs(output_dir)
 
-    model_path = Path(output_dir, f"keras_{testrun_name}.keras")
-    train_dataset_path = Path(output_dir, f"image_dataset_{testrun_name}.tfrecord")
-    val_dataset_path = Path(output_dir, f"mask_dataset_{testrun_name}.tfrecord")
+    model_path = Path(output_dir, f"{testrun_name}/keras_{testrun_name}.keras")
+    train_dataset_path = Path(output_dir, f"{testrun_name}/image_dataset_{testrun_name}.tfrecord")
+    val_dataset_path = Path(output_dir, f"{testrun_name}/mask_dataset_{testrun_name}.tfrecord")
 
     try:
         train_dataset = tf.data.Dataset.load(str(train_dataset_path))

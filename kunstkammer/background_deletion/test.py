@@ -18,18 +18,18 @@ if __name__ == "__main__":
     catalog_path = Path("coin_catalog/augmented")
     shape = (128, 128)
 
-    testrun_name = "test"
+    testrun_name = "small"
 
 
     """ Directory for storing files """
     if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "predict")):
         os.makedirs(output_dir)
 
-    model_path = Path(os.path.dirname(__file__), f"trained/keras_{testrun_name}.keras")
+    model_path = Path(os.path.dirname(__file__), f"trained/{testrun_name}/keras_{testrun_name} - checkpoint2.keras")
     model = tf.keras.models.load_model(model_path)
 
     # input_path = "coin_catalog/France/2 Franc/1917/uncropped/1.png"
-    input_path = "coin_catalog/augmented\images\(Czech Republic, 2 Koruny, 2022)/9_6.png"
+    input_path = "coin_catalog/augmented\images\(Czech Republic, 1 Koruna, 2018)/3_75.png"
     x = tf.io.read_file(input_path)
     x = tf.image.decode_image(x, channels=3)
     x.set_shape([None, None, 3])
