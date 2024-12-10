@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-from core.utilities.helper import get_directories
+from core.utilities.helper import get_directories, get_files
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import numpy as np
@@ -34,6 +34,7 @@ def load_image(image_path, size, add_aplha=False):
 def process_pair(input_path, output_path):
     input_image = load_image(input_path, image_shape)
     output_image = load_image(output_path, image_shape, add_aplha=True)
+    # output_image = load_image(output_path, image_shape)
     return input_image, output_image
 
 
@@ -64,30 +65,43 @@ def construct_pairs(x_dir_path: Path, y_dir_path: Path):
 
 
 if __name__ == "__main__":
-    catalog_path = Path("coin_catalog/augmented")
+    catalog_path = Path("coin_catalog/augmented_200")
 
     """ Hyperparemeters """
     image_shape = (128, 128)
 
-    testrun_name = "test"
-    num_epochs = 20
+    testrun_name = "coin_full"
     validation_split = 0.2
     batch_size = 1
-    lr = 3e-4
+    lr = 1e-4
+    num_epochs = 80
 
     seed = 42
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
+    # gpus = tf.config.list_physical_devices('GPU')
+    # if gpus:
+    #     try:
+    #         for gpu in gpus:
+    #             tf.config.experimental.set_memory_growth(gpu, True)  # Dynamically allocate memory
+    #             tf.config.set_logical_device_configuration(
+    #                 gpu,
+    #                 [tf.config.LogicalDeviceConfiguration(memory_limit=7540)]  # Example: Limit to 7GB
+    #             )
+    #     except RuntimeError as e:
+    #         print(e)
+
     """ Directory for storing files """
     if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "trained")):
         os.makedirs(output_dir)
 
-    model_path = Path(output_dir, f"keras_{testrun_name}.keras")
-    train_dataset_path = Path(output_dir, f"image_dataset_{testrun_name}.tfrecord")
-    val_dataset_path = Path(output_dir, f"mask_dataset_{testrun_name}.tfrecord")
+    model_path = Path(output_dir, f"{testrun_name}/keras_{testrun_name}.keras")
+    train_dataset_path = Path(output_dir, f"{testrun_name}/image_dataset_{testrun_name}.tfrecord")
+    val_dataset_path = Path(output_dir, f"{testrun_name}/mask_dataset_{testrun_name}.tfrecord")
 
     try:
+        raise Exception
         train_dataset = tf.data.Dataset.load(str(train_dataset_path))
         val_dataset = tf.data.Dataset.load(str(val_dataset_path))
 
@@ -95,8 +109,9 @@ if __name__ == "__main__":
 
     except:
         print("=== Create image pairs ===")
-        enumerations = [str(coin.stem) for coin in get_directories(Path(catalog_path, "images"))]
+        enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(catalog_path, "images"))]
         pairs = construct_pairs(x_dir_path = Path(catalog_path, "images"), y_dir_path=Path(catalog_path, "masks"))
+        # pairs = [[str(x),str(y)] for x, y in zip(get_files(Path(catalog_path, "images")), get_files(Path(catalog_path, "masks")))]
         train_pairs, val_pairs = train_test_split(pairs, test_size=validation_split)
 
         print("=== Create datasets ===")

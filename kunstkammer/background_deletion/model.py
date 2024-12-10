@@ -1,3 +1,6 @@
+from keras.layers import Multiply, Add
+
+import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, BatchNormalization, Activation, UpSampling2D, Concatenate, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.applications import ResNet50
@@ -68,19 +71,33 @@ def build_model(input_shape):
     # print(d1.shape, d2.shape, d3.shape, d4.shape)
 
     y1 = UpSampling2D((8, 8), interpolation="bilinear")(d1)
-    y1 = Conv2D(1, 1, padding="same", activation="sigmoid")(y1)
+    y1 = Conv2D(1, 1, padding="same")(y1)
+    # y1 = tf.sigmoid(5 * y1)  # Scaling the input to sigmoid for sharper slope
 
     y2 = UpSampling2D((4, 4), interpolation="bilinear")(d2)
-    y2 = Conv2D(1, 1, padding="same", activation="sigmoid")(y2)
+    y2 = Conv2D(1, 1, padding="same")(y2)
+    # y2 = tf.sigmoid(5 * y2)
 
     y3 = UpSampling2D((2, 2), interpolation="bilinear")(d3)
-    y3 = Conv2D(1, 1, padding="same", activation="sigmoid")(y3)
+    y3 = Conv2D(1, 1, padding="same")(y3)
+    # y3 = tf.sigmoid(5 * y3)
 
     y4 = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)
 
-    outputs = Concatenate()([y1, y2, y3, y4])
+    scale_y1 = tf.constant(0.2126, dtype=tf.float32)
+    scale_y2 = tf.constant(0.7152, dtype=tf.float32)
+    scale_y3 = tf.constant(0.0722, dtype=tf.float32)
 
-    model = Model(inputs, outputs, name="U-Net")
+    y1_weighted = Multiply()([y1, tf.ones_like(y1) * scale_y1])
+    y2_weighted = Multiply()([y2, tf.ones_like(y2) * scale_y2])
+    y3_weighted = Multiply()([y3, tf.ones_like(y3) * scale_y3])
+
+    brightness = Add()([y1_weighted, y2_weighted, y3_weighted])
+
+    # output = Multiply()([inputs, brightness])  # Element-wise multiplication
+
+    """ Create model """
+    model = Model(inputs, brightness, name="U-Net")
     return model
 
 if __name__ == "__main__":

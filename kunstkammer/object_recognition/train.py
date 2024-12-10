@@ -14,15 +14,16 @@ from core.utilities.helper import get_directories
 
 
 if __name__=="__main__":
-    catalog_path = Path("coin_catalog/augmented")
+    catalog_path = Path("coin_catalog/augmented_30")
 
     """ Hyperparemeters """
     image_shape = (128, 128)
 
-    testrun_name = "test"
+    testrun_name = "crops_predict_30"
     num_epochs = 20
     validation_split = 0.2
-    batch_size = 1
+    batch_size = 32
+    lr = 1e-4
 
     seed = 42
     np.random.seed(seed)
@@ -32,12 +33,12 @@ if __name__=="__main__":
     if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "trained")):
         os.makedirs(output_dir)
 
-    crops_path = Path(catalog_path, "crops")
-    model_path = Path(output_dir, f"keras_{testrun_name}.keras")
-    crops_dataset_path = Path(output_dir, f"crops_dataset_{testrun_name}.tfrecord")
+    crops_path = Path(catalog_path, "predict_masks")
+    model_path = Path(output_dir, f"{testrun_name}/keras_{testrun_name}.keras")
+    crops_dataset_path = Path(output_dir, f"{testrun_name}/crops_dataset_{testrun_name}.tfrecord")
     enum_path = f"trained/enumerations/train_enum_{testrun_name}.json"
 
-    enumerations = [str(coin.stem) for coin in get_directories(Path(catalog_path, "images"))]
+    enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(catalog_path, "images"))]
 
     try:
         crop_dataset = tf.data.Dataset.load(str(crops_dataset_path))
@@ -46,7 +47,7 @@ if __name__=="__main__":
 
     except:
         crop_dataset = tf.keras.utils.image_dataset_from_directory(str(crops_path),
-                                                               seed=123,
+                                                               seed=42,
                                                                batch_size=batch_size,
                                                                image_size=image_shape)
 
@@ -64,6 +65,9 @@ if __name__=="__main__":
         print("=== Save datasets ===")
         crop_dataset.save(str(crops_dataset_path))
 
+    for images, labels in train_dataset.take(1):
+        print(images.shape, labels.numpy())
+
     """ Model """
     if not os.path.exists(model_path):
         model = Sequential([
@@ -74,10 +78,10 @@ if __name__=="__main__":
             MaxPooling2D(),
             Conv2D(64, 3, padding='same', activation='relu'),
             MaxPooling2D(),
-            Dropout(0.2),
+            Dropout(0.3),
             Flatten(),
             Dense(128, activation='relu'),
-            Dense(len(enumerations))
+            Dense(len(enumerations), activation='softmax')
         ])
 
     else:
@@ -86,21 +90,21 @@ if __name__=="__main__":
 
     """ Training """
     model.compile(
-        optimizer='adam',
+        optimizer=tf.keras.optimizers.Adam(lr),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
         metrics=['accuracy']
     )
 
     callbacks = [
-        ModelCheckpoint("model.h5", save_best_only=True),
+        ModelCheckpoint(model_path, save_best_only=True),
         ReduceLROnPlateau(factor=0.1, patience=5),
-        EarlyStopping(patience=10)
+        EarlyStopping(patience=15)
     ]
 
     history = model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=20,
+        epochs=num_epochs,
         callbacks=callbacks
     )
 
