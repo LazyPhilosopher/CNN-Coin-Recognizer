@@ -7,29 +7,29 @@ import tensorflow as tf
 from core.utilities.helper import get_directories
 
 if __name__ == "__main__":
-    catalog_path = Path("coin_catalog/augmented")
+    catalog_path = Path("coin_catalog/augmented_30")
     shape = (128, 128)
 
-    testrun_name = "ResNet50"
+    testrun_name = "crops_predict_30"
 
     # enum_path = f"trained/enumerations/train_enum_{testrun_name}.json"
     enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(catalog_path, "images"))]
 
-    model_path = Path(os.path.dirname(__file__), f"trained/object_recognition_{testrun_name}.keras")
+    model_path = Path(os.path.dirname(__file__), f"trained/{testrun_name}/keras_{testrun_name}.keras")
     model = tf.keras.models.load_model(model_path)
 
     samples = [
-        "coin_catalog/augmented/crops/(Czech Republic, 50 Korun, 2008)/0_10.png",
-        "coin_catalog/augmented/crops/(Czech Republic, 1 Koruna, 2018)/0_19.png",
-        "coin_catalog/augmented/crops/(USA, 2.5 Dollar, 1909)/1_7.png",
-        "coin_catalog/augmented/crops/(Great britain, 0.5 Souvereign, 1906)/0_13.png",
-        "coin_catalog/augmented/crops/(Iran, 0.5 Souvereign, 1925)/4_3.png",
-        "coin_catalog/augmented/crops/(Austria-Hungary, 20 Korona, 1893)/0_8.png",
-        "coin_catalog/augmented/crops/(Czech Republic, 10 Korun, 2020)/0_3.png",
-        "coin_catalog/augmented/crops/(France, 2 Franc, 1917)/0_20.png",
-        "coin_catalog/augmented/crops/(Czech Republic, 5 Korun, 2002)/0_17.png",
-        "coin_catalog/augmented/crops/(India, 1 Rupee, 1840)/4_26.png",
-        "coin_catalog/augmented/crops/(Austria-Hungary, 20 Korona, 1893)/0_11.png",
+        "coin_catalog/augmented_30/crops/(Czech Republic, 50 Korun, 2008)/0_10.png",
+        "coin_catalog/augmented_30/crops/(Czech Republic, 1 Koruna, 2018)/0_19.png",
+        "coin_catalog/augmented_30/crops/(USA, 2.5 Dollar, 1909)/1_7.png",
+        "coin_catalog/augmented_30/crops/(Great britain, 0.5 Souvereign, 1906)/0_13.png",
+        "coin_catalog/augmented_30/crops/(Iran, 0.5 Souvereign, 1925)/4_3.png",
+        "coin_catalog/augmented_30/crops/(Austria-Hungary, 20 Korona, 1893)/0_8.png",
+        "coin_catalog/augmented_30/crops/(Czech Republic, 10 Korun, 2020)/0_3.png",
+        "coin_catalog/augmented_30/crops/(France, 2 Franc, 1917)/0_20.png",
+        "coin_catalog/augmented_30/crops/(Czech Republic, 5 Korun, 2002)/0_17.png",
+        "coin_catalog/augmented_30/crops/(India, 1 Rupee, 1840)/4_26.png",
+        "coin_catalog/augmented_30/crops/(Austria-Hungary, 20 Korona, 1893)/0_11.png",
     ]
 
     results = []

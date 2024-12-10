@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import cv2
 import numpy as np
 import tensorflow as tf
 from keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -74,12 +75,12 @@ def make_tensor_bw(tensor, treshold=0.25):
 
 image_shape = (128, 128)
 batch_size = 1
-lr = 1e-3
+lr = 3e-5
 num_epochs = 20
 validation_split = 0.2
-catalog_path = Path("coin_catalog/augmented")
+catalog_path = Path("coin_catalog/augmented_200")
 
-testrun_name = "merge"
+testrun_name = "merge_200"
 if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "trained")):
     os.makedirs(output_dir)
 
@@ -101,7 +102,7 @@ crop_list = []
 crop_labels = []
 
 try:
-    crop_dataset = tf.data.Dataset.load(str(Path(catalog_path, "images")))
+    crop_dataset = tf.data.Dataset.load(str(crop_dataset_path))
     print("=== Dataset loaded ===")
 
 except:
@@ -110,15 +111,29 @@ except:
                                                 batch_size=batch_size,
                                                 image_size=image_shape)
 
-    for idx, (image_batch, label_batch) in image_dataset.enumerate():
-        crop_mask = crop_model.predict(image_batch)
-        crop_mask = crop_mask[0]  # Remove batch dimension
-        crop_mask = np.clip(crop_mask * 255, 0, 255).astype(np.uint8)
-        crop_mask = make_tensor_bw(crop_mask, treshold=0.1)
+    if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "datasets", testrun_name)):
+        os.makedirs(output_dir)
 
-        crop_labels.append(label_batch)
-        crop_list.append(crop_mask*image_batch)
-        print(f"{idx}/{len(image_dataset)}")
+    for idx, (image_batch, label_batch) in image_dataset.enumerate():
+        # Iterate through the batch
+        for i in range(len(image_batch)):
+            crop_mask = crop_model.predict(image_batch[i:i + 1])  # Predict single image (keep batch dimension)
+            crop_mask = crop_mask[0]  # Remove batch dimension
+            crop_mask = np.clip(crop_mask * 255, 0, 255).astype(np.uint8)
+            crop_mask = make_tensor_bw(crop_mask, treshold=0.1)
+
+            # Extract the label and determine folder name
+            label = label_batch[i].numpy()  # Convert tensor to NumPy
+            # label_name = label_to_name.get(label, f"label_{label}")  # Translate label to name
+
+            # Define save path
+            save_dir = Path(os.path.dirname(__file__), "datasets", testrun_name, str(label))
+            save_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+
+            # Save the crop_mask
+            crop_mask_path = save_dir / f"crop_mask_{idx}_{i}.png"  # Name the file uniquely
+            cv2.imwrite(str(crop_mask_path), crop_mask)
+
 
     crop_dataset = tf.data.Dataset.from_tensor_slices((crop_list, crop_labels))
     crop_dataset.save(str(crop_dataset_path))
