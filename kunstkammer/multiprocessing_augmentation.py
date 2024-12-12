@@ -12,6 +12,8 @@ from PySide6.QtCore import QTimer, QObject, QCoreApplication
 from core.utilities.helper import parse_directory_into_dictionary, qimage_to_cv2, imgaug_transformation, cv2_to_qimage, \
     transparent_to_hue, transparent_to_mask
 
+tf.config.set_visible_devices([], 'GPU')
+
 # ANSI escape codes for coloring
 COLOR_GREEN = "\033[92m"
 COLOR_BLUE = "\033[94m"
@@ -29,6 +31,29 @@ class CustomFormatter(logging.Formatter):
 
         record.processName = f"{COLOR_GREEN}{record.processName}{COLOR_RESET}"
         return super().format(record)
+
+
+def apply_rgb_mask(image_tensor, mask_tensor):
+    """
+    Masks an RGB image with a binary RGB mask. Keeps original pixel values where the mask is white (1, 1, 1),
+    and sets to black (0, 0, 0) where the mask is black (0, 0, 0).
+
+    Args:
+        image_tensor: TensorFlow tensor of shape (height, width, 3) representing the original RGB image.
+        mask_tensor: TensorFlow tensor of shape (height, width, 3) representing the binary RGB mask
+                     with values either (1, 1, 1) or (0, 0, 0).
+
+    Returns:
+        A TensorFlow tensor of the same shape as the input, masked by the binary mask.
+    """
+    # Ensure mask is binary (1s or 0s)
+    mask_bool = tf.reduce_all(mask_tensor == 1, axis=-1, keepdims=True)  # Shape: (height, width, 1)
+
+    # Use tf.where to apply the mask
+    result = tf.where(mask_bool, image_tensor, tf.zeros_like(image_tensor))
+
+    return result
+
 
 
 # Configure logging to avoid overlapping output
@@ -62,7 +87,7 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
     cv2_cropped_image = qimage_to_cv2(cropped_image)
     cv2_cropped_mask = transparent_to_mask(cv2_cropped_image)
 
-    for i in range(200):
+    for i in range(10):
         cv2_augmented_image, cv2_augmented_mask, cv2_augmented_crop = (
             imgaug_transformation(image=cv2_uncropped_image, mask=cv2_cropped_mask, transparent=cv2_cropped_image))
 
@@ -191,23 +216,26 @@ class WorkerManager(QObject):
 
 
 if __name__ == "__main__":
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
     print(f"Available devices: {tf.config.list_physical_devices()}")
-    physical_devices = tf.config.list_physical_devices('GPU')
-    if physical_devices:
-        print(f"Running on GPU: {physical_devices}")
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        if gpus:
-            try:
-                for gpu in gpus:
-                    tf.config.experimental.set_memory_growth(gpu, True)
-            except RuntimeError as e:
-                print(e)
-    else:
-        print("Running on CPU")
+
+    # physical_devices = tf.config.list_physical_devices('GPU')
+    # if physical_devices:
+    #     print(f"Running on GPU: {physical_devices}")
+    #     gpus = tf.config.experimental.list_physical_devices('GPU')
+    #     if gpus:
+    #         try:
+    #             for gpu in gpus:
+    #                 tf.config.experimental.set_memory_growth(gpu, True)
+    #         except RuntimeError as e:
+    #             print(e)
+    # else:
+    #     print("Running on CPU")
 
     app = QCoreApplication(sys.argv)
 
-    manager = WorkerManager(process_count=75)
+    manager = WorkerManager(process_count=80)
     aug_tasks = get_augmentation_tasks()
 
     manager.run_workers(aug_tasks)

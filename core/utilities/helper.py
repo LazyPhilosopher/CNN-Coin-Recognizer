@@ -19,6 +19,29 @@ from skimage.util import random_noise
 # import win32com.client
 
 
+def apply_rgb_mask(image_tensor, mask_tensor):
+    """
+    Masks an RGB image with a binary RGB mask. Keeps original pixel values where the mask is white (1, 1, 1),
+    and sets to black (0, 0, 0) where the mask is black (0, 0, 0).
+
+    Args:
+        image_tensor: TensorFlow tensor of shape (height, width, 3) representing the original RGB image.
+        mask_tensor: TensorFlow tensor of shape (height, width, 3) representing the binary RGB mask
+                     with values either (1, 1, 1) or (0, 0, 0).
+
+    Returns:
+        A TensorFlow tensor of the same shape as the input, masked by the binary mask.
+    """
+    # Ensure mask is binary (1s or 0s)
+    mask_bool = tf.reduce_all(mask_tensor == 1, axis=-1, keepdims=True)  # Shape: (height, width, 1)
+
+    # Use tf.where to apply the mask
+    result = tf.where(mask_bool, image_tensor, tf.zeros_like(image_tensor))
+
+    return result
+
+
+
 def get_directories(directory_path: Path):
     return [entry for entry in directory_path.iterdir() if entry.is_dir()]
 
@@ -221,9 +244,10 @@ def imgaug_transformation(image: np.ndarray, mask: np.ndarray, transparent: np.n
     temp_image = seq_common_det.augment_image(image)
     image_aug = seq_noise_det.augment_image(temp_image)
     temp_crop = seq_common_det.augment_image(transparent)
-    crop_aug = seq_noise_det.augment_image(temp_crop[:, :, :3])
-    crop_aug = np.concatenate([crop_aug, np.expand_dims(temp_crop[:, :, 3], axis=-1)], axis=-1)
     mask_aug = seq_common_det.augment_image(mask)
+    crop_aug = seq_noise_det.augment_image(temp_crop[:, :, :3])
+    crop_aug = apply_rgb_mask(crop_aug, mask_aug)
+    crop_aug = np.concatenate([crop_aug, np.expand_dims(temp_crop[:, :, 3], axis=-1)], axis=-1)
 
     # crop_aug = tf.where(mask_aug[:, :, 3:4] == 0, tf.zeros_like(crop_aug), crop_aug)
 
@@ -264,3 +288,42 @@ def transparent_to_mask(image):
     mask = np.repeat(binary_mask[..., np.newaxis], 3, axis=-1)
 
     return mask
+
+
+def load_png_as_tensor(file_path, shape):
+    tensor = tf.io.read_file(file_path)
+    tensor = tf.image.decode_image(tensor, channels=3)
+    tensor.set_shape([None, None, 3])
+    tensor = tf.image.resize(tensor, shape)
+    tensor = tensor / 255
+    return tensor
+
+
+def threshold_to_black_and_white(image_tensor, threshold=0.004):
+    """
+    Converts an RGB tensor to a black-and-white tensor based on a threshold.
+    Pixels where all channels are >= threshold are set to White (1.0, 1.0, 1.0).
+    Otherwise, they are set to Black (0.0, 0.0, 0.0).
+
+    Args:
+        image_tensor: TensorFlow tensor of shape (height, width, 3) with RGB values.
+        threshold: Float value for the threshold.
+
+    Returns:
+        A tensor of the same shape as the input with values set to either (1.0, 1.0, 1.0) or (0.0, 0.0, 0.0).
+    """
+    # Create a boolean mask where all channels are >= threshold
+    mask = tf.reduce_all(image_tensor >= threshold, axis=-1)  # Shape: (height, width)
+
+    # Create a white pixel tensor (1, 1, 1)
+    # white_pixel = tf.constant([1, 1, 1], dtype=image_tensor.dtype)
+    white_pixel = tf.constant([1, 1, 1], dtype=tf.uint8)
+
+    # Create a black pixel tensor (0, 0, 0)
+    # black_pixel = tf.constant([0, 0, 0], dtype=image_tensor.dtype)
+    black_pixel = tf.constant([0, 0, 0], dtype=tf.uint8)
+
+    # Apply the mask to choose between white and black
+    result = tf.where(mask[..., tf.newaxis], white_pixel, black_pixel)
+
+    return result

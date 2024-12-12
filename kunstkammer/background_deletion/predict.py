@@ -104,7 +104,7 @@ def normalize_tensor(tensor):
 
 
 if __name__ == "__main__":
-    catalog_path = Path("coin_catalog/augmented_30")
+    catalog_path = Path("coin_catalog/augmented_200")
     mask_shape = (128, 128)
     output_shape = (512, 512)
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir := Path(catalog_path, "predict_masks")):
         os.makedirs(output_dir)
 
-    model_path = Path(os.path.dirname(__file__), f"trained/{testrun_name}/keras_{testrun_name}_checkpoint.keras")
+    model_path = Path(f"kunstkammer/background_deletion/trained/augmented_20/keras_augmented_20.h5")
     model = tf.keras.models.load_model(model_path)
 
     enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(catalog_path, "images"))]
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
             predicted_mask = model.predict(image_small)
             predicted_mask = predicted_mask[0][..., :3]
-            bw_mask = threshold_to_black_and_white(predicted_mask, threshold=0.0035)
+            bw_mask = threshold_to_black_and_white(predicted_mask, threshold=0.003)
             bw_mask = tf.image.resize(bw_mask, output_shape)
 
             image_full = load_png_as_tensor(str(image_path), output_shape)

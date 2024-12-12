@@ -1,9 +1,9 @@
-from keras.layers import Multiply, Add
-
 import tensorflow as tf
+from keras.layers import Lambda, Multiply, Add
 from tensorflow.keras.layers import Conv2D, BatchNormalization, Activation, UpSampling2D, Concatenate, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.applications import ResNet50
+
 
 def residual_block(inputs, num_filters):
     x = Conv2D(num_filters, 3, padding="same")(inputs)
@@ -71,16 +71,13 @@ def build_model(input_shape):
     # print(d1.shape, d2.shape, d3.shape, d4.shape)
 
     y1 = UpSampling2D((8, 8), interpolation="bilinear")(d1)
-    y1 = Conv2D(1, 1, padding="same")(y1)
-    # y1 = tf.sigmoid(5 * y1)  # Scaling the input to sigmoid for sharper slope
+    y1 = Conv2D(1, 1, padding="same", activation="sigmoid")(y1)
 
     y2 = UpSampling2D((4, 4), interpolation="bilinear")(d2)
-    y2 = Conv2D(1, 1, padding="same")(y2)
-    # y2 = tf.sigmoid(5 * y2)
+    y2 = Conv2D(1, 1, padding="same", activation="sigmoid")(y2)
 
     y3 = UpSampling2D((2, 2), interpolation="bilinear")(d3)
-    y3 = Conv2D(1, 1, padding="same")(y3)
-    # y3 = tf.sigmoid(5 * y3)
+    y3 = Conv2D(1, 1, padding="same", activation="sigmoid")(y3)
 
     y4 = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)
 
@@ -104,4 +101,3 @@ if __name__ == "__main__":
     input_shape = (512, 512, 3)
     model = build_model(input_shape)
     model.summary()
-

@@ -90,21 +90,21 @@ if __name__ == "__main__":
     output_shape = (512, 512)
 
 
-    testrun_name = "coin_full"
+    testrun_name = "coin_20"
 
 
     """ Directory for storing files """
     if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "predict")):
         os.makedirs(output_dir)
 
-    model_path = Path(os.path.dirname(__file__), f"trained/{testrun_name}/keras_{testrun_name}_checkpoint.keras")
+    model_path = Path(os.path.dirname(__file__), f"trained/{testrun_name}/keras_{testrun_name}.h5")
     model = tf.keras.models.load_model(model_path)
 
     # input_path = "coin_catalog/France/2 Franc/1917/uncropped/1.png"
     # input_path = "coin_catalog/augmented_200/images/(Czech Republic, 1 Koruna, 2018)/2_100.png"
     # input_path = "coin_catalog/augmented_200/images/(USA, 2.5 Dollar, 1909)/0_108.png"
-    input_path = "coin_catalog/augmented_200/images/(France, 2 Franc, 1917)/29_13.png"
-    # input_path = "coin_catalog/people_segmentation/images/adult-attractive-full-body-41215.jpg"
+    input_path = "coin_catalog/augmented_30/images/(Czech Republic, 1 Koruna, 2018)/1_28.png"
+    # input_path = "D:/Projects/bachelor_thesis/Background-Removal-using-Deep-Learning/people_segmentation/images/adult-attractive-full-body-41215.jpg"
     x = tf.io.read_file(input_path)
     x = tf.image.decode_image(x, channels=3)
     x.set_shape([None, None, 3])

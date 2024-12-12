@@ -33,8 +33,8 @@ def load_image(image_path, size, add_aplha=False):
 
 def process_pair(input_path, output_path):
     input_image = load_image(input_path, image_shape)
-    output_image = load_image(output_path, image_shape, add_aplha=True)
-    # output_image = load_image(output_path, image_shape)
+    # output_image = load_image(output_path, image_shape, add_aplha=True)
+    output_image = load_image(output_path, image_shape)
     return input_image, output_image
 
 
@@ -65,16 +65,17 @@ def construct_pairs(x_dir_path: Path, y_dir_path: Path):
 
 
 if __name__ == "__main__":
-    catalog_path = Path("coin_catalog/augmented_200")
+    catalog_path = Path("coin_catalog/augmented_20")
+    # catalog_path = Path("D:/Projects/bachelor_thesis/Background-Removal-using-Deep-Learning/people_segmentation")
 
     """ Hyperparemeters """
     image_shape = (128, 128)
 
-    testrun_name = "coin_full"
+    testrun_name = "coin_20"
     validation_split = 0.2
     batch_size = 1
-    lr = 1e-4
-    num_epochs = 80
+    lr = 1e-5
+    num_epochs = 100
 
     seed = 42
     np.random.seed(seed)
@@ -96,12 +97,12 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "trained")):
         os.makedirs(output_dir)
 
-    model_path = Path(output_dir, f"{testrun_name}/keras_{testrun_name}.keras")
+    model_path = Path(output_dir, f"{testrun_name}/keras_{testrun_name}.h5")
     train_dataset_path = Path(output_dir, f"{testrun_name}/image_dataset_{testrun_name}.tfrecord")
     val_dataset_path = Path(output_dir, f"{testrun_name}/mask_dataset_{testrun_name}.tfrecord")
 
     try:
-        raise Exception
+        # raise Exception
         train_dataset = tf.data.Dataset.load(str(train_dataset_path))
         val_dataset = tf.data.Dataset.load(str(val_dataset_path))
 
