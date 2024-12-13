@@ -76,10 +76,10 @@ if __name__ == "__main__":
             metrics=["accuracy"]  # Optional: Add accuracy or other metrics to monitor during training
         )
 
-    crop_model.train_model(train_dataset=crop_train_dataset, val_dataset=crop_val_dataset, num_epochs=crop_epochs, checkpoint_path=crop_model_dir)
-    crop_model.save(crop_model_dir)
+    # crop_model.train_model(train_dataset=crop_train_dataset, val_dataset=crop_val_dataset, num_epochs=crop_epochs, checkpoint_path=crop_model_dir)
+    # crop_model.save(crop_model_dir)
 
-    crop_model.predict_dir(input_dir=Path(catalog_path, "images"), output_dir=Path(catalog_path, "predict_masks"), output_shape=classification_shape)
+    # crop_model.predict_dir(input_dir=Path(catalog_path, "images"), output_dir=Path(catalog_path, "predict_masks"), output_shape=classification_shape)
 
     """ Identification Model Training """
     try:
@@ -93,13 +93,14 @@ if __name__ == "__main__":
     except:
         """ Split dataset into train and validation subsets """
         enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(catalog_path, "images"))]
-        train_dataset = tf.keras.utils.image_dataset_from_directory(catalog_path,
+        crop_predict_dir = str(Path(catalog_path, "predict_masks"))
+        train_dataset = tf.keras.utils.image_dataset_from_directory(crop_predict_dir,
                                                                     seed=42,
                                                                     validation_split=0.2,
                                                                     subset='training',
                                                                     batch_size=batch_size,
                                                                     image_size=classification_shape)
-        val_dataset = tf.keras.utils.image_dataset_from_directory(catalog_path,
+        val_dataset = tf.keras.utils.image_dataset_from_directory(crop_predict_dir,
                                                                   seed=42,
                                                                   validation_split=0.2,
                                                                   subset='validation',

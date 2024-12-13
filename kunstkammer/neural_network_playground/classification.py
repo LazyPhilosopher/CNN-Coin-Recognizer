@@ -28,8 +28,8 @@ class ClassificationModel:
         image_full = tf.keras.utils.load_img(image_path, target_size=self.input_shape)
         return tf.keras.utils.img_to_array(image_full)
 
-    def predict(self, image):
-        return self.model.predict(image)
+    def predict(self, image, verbose=False):
+        return self.model.predict(image, verbose=verbose)
 
     def train_model(self, checkpoint_dir, train_dataset, val_dataset, epochs):
         full_checkpoint_path = Path(checkpoint_dir, f"keras_{checkpoint_dir.parts[-1]}.h5")

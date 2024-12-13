@@ -52,8 +52,8 @@ class CropModel:
         image = image / 255
         return image
 
-    def predict_mask(self, batched_image, threshold: float = 0.003):
-        predicted_mask = self.model.predict(batched_image)
+    def predict_mask(self, batched_image, threshold: float = 0.003, verbose=False):
+        predicted_mask = self.model.predict(batched_image, verbose=verbose)
         predicted_mask = predicted_mask[0][..., :3]
         return threshold_to_black_and_white(predicted_mask, threshold=threshold)
 
