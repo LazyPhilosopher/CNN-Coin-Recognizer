@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 import tensorflow as tf
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 from core.helper import construct_pairs
 
@@ -35,7 +35,8 @@ class ClassificationModel:
         full_checkpoint_path = Path(checkpoint_dir, f"keras_{checkpoint_dir.parts[-1]}.h5")
 
         callbacks = [
-            ModelCheckpoint(full_checkpoint_path, monitor='loss', verbose=1, save_best_only=True)
+            ModelCheckpoint(full_checkpoint_path, monitor='loss', verbose=1, save_best_only=True),
+            EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
         ]
 
         return self.model.fit(train_dataset,

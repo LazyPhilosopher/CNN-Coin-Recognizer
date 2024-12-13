@@ -19,7 +19,7 @@ batch_size = 1
 lr = 1e-4
 
 crop_epochs = 15
-classification_epochs = 10
+classification_epochs = 30
 
 crop_model_name = "crop_model_30"
 classification_model_name = "classification_model_30"
