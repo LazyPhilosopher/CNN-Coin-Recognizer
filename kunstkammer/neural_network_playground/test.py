@@ -15,34 +15,32 @@ catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_ca
 crop_shape = (128, 128)
 classification_shape = (512, 512)
 
-crop_model_name = "crop_model"
-classification_model_name = "classification_model"
+crop_model_name = "crop_model_30"
+classification_model_name = "classification_model_30"
 
 if __name__ == "__main__":
 
     crop_model = CropModel(crop_shape)
     classification_model = ClassificationModel(classification_shape)
 
-    # test_samples = [
-    #     "(Czech Republic, 50 Korun, 2008)/0_9.png",
-    #     "(Czech Republic, 1 Koruna, 2018)/1_8.png",
-    #     "(USA, 2.5 Dollar, 1909)/1_7.png",
-    #     "(Great britain, 0.5 Souvereign, 1906)/0_3.png",
-    #     "(Iran, 0.5 Souvereign, 1925)/4_3.png",
-    #     "(Austria-Hungary, 20 Korona, 1893)/0_8.png",
-    #     "(Czech Republic, 10 Korun, 2020)/0_3.png",
-    #     "(France, 2 Franc, 1917)/0_2.png",
-    #     "(Czech Republic, 5 Korun, 2002)/0_7.png",
-    #     "(India, 1 Rupee, 1840)/4_6.png",
-    #     "(Austria-Hungary, 20 Korona, 1893)/0_1.png",
-    # ]
+    test_samples = [
+        "(Czech Republic, 50 Korun, 2008)/0_9.png",
+        "(Czech Republic, 1 Koruna, 2018)/1_8.png",
+        "(USA, 2.5 Dollar, 1909)/1_7.png",
+        "(Great britain, 0.5 Souvereign, 1906)/0_3.png",
+        "(Iran, 0.5 Souvereign, 1925)/4_3.png",
+        "(Austria-Hungary, 20 Korona, 1893)/0_8.png",
+        "(Czech Republic, 10 Korun, 2020)/0_3.png",
+        "(France, 2 Franc, 1917)/0_2.png",
+        "(Czech Republic, 5 Korun, 2002)/0_7.png",
+        "(India, 1 Rupee, 1840)/4_6.png",
+        "(Austria-Hungary, 20 Korona, 1893)/0_1.png",
+    ]
 
-    test_samples = []
-    for coin_dir_path in get_directories(Path(catalog_path, "images")):
-        # if "augmented" in str(coin_dir_path):
-        #     continue
-        for image_path in get_files(coin_dir_path):
-            test_samples.append(str(image_path.parts[-2] + "/"+ image_path.parts[-1]))
+    # test_samples = []
+    # for coin_dir_path in get_directories(Path(catalog_path, "images")):
+    #     for image_path in get_files(coin_dir_path):
+    #         test_samples.append(str(image_path.parts[-2] + "/"+ image_path.parts[-1]))
 
     try:
         crop_model.load_model(Path(trained_model_dir, crop_model_name))

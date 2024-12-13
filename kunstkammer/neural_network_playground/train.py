@@ -11,7 +11,7 @@ from kunstkammer.neural_network_playground.core.models import build_resnet34_mod
 from kunstkammer.neural_network_playground.crop import CropModel
 
 trained_model_dir = Path(os.path.dirname(__file__), "trained")
-catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_10")
+catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_30")
 crop_shape = (128, 128)
 classification_shape = (512, 512)
 validation_split = 0.2
@@ -19,10 +19,10 @@ batch_size = 1
 lr = 1e-4
 
 crop_epochs = 15
-classification_epochs = 15
+classification_epochs = 10
 
-crop_model_name = "crop_model"
-classification_model_name = "classification_model"
+crop_model_name = "crop_model_30"
+classification_model_name = "classification_model_30"
 
 
 if __name__ == "__main__":
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     # crop_model.train_model(train_dataset=crop_train_dataset, val_dataset=crop_val_dataset, num_epochs=crop_epochs, checkpoint_path=crop_model_dir)
     # crop_model.save(crop_model_dir)
-
+    #
     # crop_model.predict_dir(input_dir=Path(catalog_path, "images"), output_dir=Path(catalog_path, "predict_masks"), output_shape=classification_shape)
 
     """ Identification Model Training """
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     model_path = Path(output_dir, f"{classification_model_name}/keras_{classification_model_name}.h5")
 
     if not classification_model.load_model(classification_model_dir):
-        classification_model.model = build_conv_model(len(enumerations))
+        classification_model.model = build_conv_model(classification_shape, len(enumerations))
 
     classification_model.model.compile(optimizer='adam',
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),

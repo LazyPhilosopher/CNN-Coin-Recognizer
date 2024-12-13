@@ -1,13 +1,8 @@
-import json
 import os
 from pathlib import Path
 
 from core.helper import construct_pairs, threshold_to_black_and_white, save_tensor_as_png
-
 from core.utilities.helper import get_directories, get_files, apply_rgb_mask
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import numpy as np
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping

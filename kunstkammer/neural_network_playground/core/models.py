@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.layers import Multiply, Add
+from keras.layers import Multiply, Add, RandomFlip, RandomRotation, RandomZoom
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten, BatchNormalization, Activation, \
     UpSampling2D, Concatenate, Input, Rescaling
@@ -100,9 +100,15 @@ def build_resnet34_model(input_shape):
     return model
 
 
-def build_conv_model(class_amnt):
+def build_conv_model(input_shape, class_amnt):
+    data_augmentation = Sequential([
+        RandomFlip("horizontal", input_shape=(*input_shape, 3)),
+        RandomRotation(0.1),
+        RandomZoom(0.1)
+    ])
+
     return Sequential([
-        # data_augmentation,
+        data_augmentation,
         Rescaling(1. / 255),
         Conv2D(16, 3, padding='same', activation='relu'),
         MaxPooling2D(),
