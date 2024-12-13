@@ -1,8 +1,10 @@
 import tensorflow as tf
-from keras.layers import Lambda, Multiply, Add
-from tensorflow.keras.layers import Conv2D, BatchNormalization, Activation, UpSampling2D, Concatenate, Input
-from tensorflow.keras.models import Model
+from keras.layers import Multiply, Add
 from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten, BatchNormalization, Activation, \
+    UpSampling2D, Concatenate, Input, Rescaling
+from tensorflow.keras.models import Model
+from tensorflow.keras.models import Sequential
 
 
 def residual_block(inputs, num_filters):
@@ -45,7 +47,7 @@ def decoder_block(inputs, skip_features, num_filters):
     x = residual_block(x, num_filters)
     return x
 
-def build_model(input_shape):
+def build_resnet34_model(input_shape):
     """ Input """
     inputs = Input(input_shape)
 
@@ -97,7 +99,19 @@ def build_model(input_shape):
     model = Model(inputs, brightness, name="U-Net")
     return model
 
-if __name__ == "__main__":
-    input_shape = (512, 512, 3)
-    model = build_model(input_shape)
-    model.summary()
+
+def build_conv_model(class_amnt):
+    return Sequential([
+        # data_augmentation,
+        Rescaling(1. / 255),
+        Conv2D(16, 3, padding='same', activation='relu'),
+        MaxPooling2D(),
+        Conv2D(32, 3, padding='same', activation='relu'),
+        MaxPooling2D(),
+        Conv2D(64, 3, padding='same', activation='relu'),
+        MaxPooling2D(),
+        Dropout(0.2),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dense(class_amnt)
+    ])

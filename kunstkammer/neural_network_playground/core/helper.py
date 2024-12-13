@@ -1,8 +1,28 @@
+import json
 import os
 from pathlib import Path
-
-import numpy as np
 import tensorflow as tf
+
+def get_directories(directory_path: Path):
+    return [entry for entry in directory_path.iterdir() if entry.is_dir()]
+
+def construct_pairs(x_dir_path: Path, y_dir_path: Path):
+    pairs = []
+
+    enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(x_dir_path))]
+    for class_name in enumerations:
+        input_class_dir = os.path.join(x_dir_path, class_name)
+        output_class_dir = os.path.join(y_dir_path, class_name)
+        if os.path.isdir(input_class_dir) and os.path.isdir(output_class_dir):
+            input_images = sorted(os.listdir(input_class_dir))
+            output_images = sorted(os.listdir(output_class_dir))
+            for img_name in input_images:
+                if img_name in output_images:  # Match input-output pairs
+                    pairs.append((
+                        os.path.join(input_class_dir, img_name),
+                        os.path.join(output_class_dir, img_name)
+                    ))
+    return pairs
 
 
 def threshold_to_black_and_white(image_tensor, threshold=0.004):
@@ -56,6 +76,42 @@ def apply_rgb_mask(image_tensor, mask_tensor):
 
     return result
 
+def load_enumerations(enum_path: Path | str):
+    with open(os.path.join(enum_path, "enums.json"), "r") as f:
+        enumerations = json.load(f)
+    return enumerations
+
+
+def load_image(image_path, size, add_aplha=False):
+    image = tf.io.read_file(image_path)
+    image = tf.image.decode_png(image, channels=3)  # For RGB images
+    image = tf.image.resize(image, size)
+
+    if add_aplha:
+        alpha_channel = tf.ones_like(image[..., :1])
+        image_with_alpha = tf.concat([image, alpha_channel], axis=-1)
+        image_with_alpha = tf.image.resize(image_with_alpha, size)
+        image_with_alpha = image_with_alpha / 255.0
+        return image_with_alpha
+
+    image = image / 255.0
+    return image
+
+
+def create_dataset(pairs, batch_size, image_shape):
+    def process_pair(input_path, output_path):
+        input_image = load_image(input_path, image_shape)
+        # output_image = load_image(output_path, image_shape, add_aplha=True)
+        output_image = load_image(output_path, image_shape)
+        return input_image, output_image
+
+    input_paths, output_paths = zip(*pairs)
+    dataset = tf.data.Dataset.from_tensor_slices((list(input_paths), list(output_paths)))
+    dataset = dataset.map(lambda x, y: process_pair(x, y),
+                          num_parallel_calls=tf.data.AUTOTUNE)
+    dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    return dataset
+
 
 def save_tensor_as_png(tensor, file_path, bit_depth=8):
     """
@@ -82,50 +138,3 @@ def save_tensor_as_png(tensor, file_path, bit_depth=8):
 
     # Save to file
     tf.io.write_file(file_path, png_bytes)
-
-
-if __name__ == "__main__":
-    catalog_path = Path("coin_catalog/augmented")
-    mask_shape = (128, 128)
-    output_shape = (512, 512)
-
-
-    testrun_name = "coin_20"
-
-
-    """ Directory for storing files """
-    if not os.path.exists(output_dir := Path(os.path.dirname(__file__), "predict")):
-        os.makedirs(output_dir)
-
-    model_path = Path(os.path.dirname(__file__), f"trained/{testrun_name}/keras_{testrun_name}.h5")
-    model = tf.keras.models.load_model(model_path)
-
-    # input_path = "coin_catalog/France/2 Franc/1917/uncropped/1.png"
-    # input_path = "coin_catalog/augmented_200/images/(Czech Republic, 1 Koruna, 2018)/2_100.png"
-    # input_path = "coin_catalog/augmented_200/images/(USA, 2.5 Dollar, 1909)/0_108.png"
-    input_path = "coin_catalog/augmented_30/images/(Czech Republic, 1 Koruna, 2018)/1_28.png"
-    # input_path = "D:/Projects/bachelor_thesis/Background-Removal-using-Deep-Learning/people_segmentation/images/adult-attractive-full-body-41215.jpg"
-    x = tf.io.read_file(input_path)
-    x = tf.image.decode_image(x, channels=3)
-    x.set_shape([None, None, 3])
-    x = tf.image.resize(x, mask_shape)
-    x = x / 255
-    x_batch = tf.expand_dims(x, axis=0) # Batch enpacking
-
-    y = model.predict(x_batch)
-    y = y[0]  # Remove batch dimension
-    y = y[:, :, :3]
-    # y = np.clip(y * 255, 0, 255).astype(np.uint8)
-
-    bw_mask = threshold_to_black_and_white(y, threshold=0.0035)
-    bw_mask = tf.image.resize(bw_mask, output_shape)
-    image_full = tf.io.read_file(input_path)
-    image_full = tf.image.decode_image(image_full, channels=3)
-    image_full.set_shape([None, None, 3])
-    image_full = image_full / 255
-    image_full = tf.image.resize(image_full, output_shape)
-
-    # Save the image using TensorFlow's image encoding
-    output = apply_rgb_mask(image_full, bw_mask)
-    save_tensor_as_png(output, output_path := str(Path(output_dir, "predict", "output_image.png")))
-    print(f"Image saved to {output_path}")
