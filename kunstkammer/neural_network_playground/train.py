@@ -76,8 +76,8 @@ if __name__ == "__main__":
             metrics=["accuracy"]  # Optional: Add accuracy or other metrics to monitor during training
         )
 
-    # crop_model.train_model(train_dataset=crop_train_dataset, val_dataset=crop_val_dataset, num_epochs=crop_epochs, checkpoint_path=crop_model_dir)
-    # crop_model.save(crop_model_dir)
+    crop_model.train_model(train_dataset=crop_train_dataset, val_dataset=crop_val_dataset, num_epochs=crop_epochs, checkpoint_path=crop_model_dir)
+    crop_model.save(crop_model_dir)
     #
     # crop_model.predict_dir(input_dir=Path(catalog_path, "images"), output_dir=Path(catalog_path, "predict_masks"), output_shape=classification_shape)
 
@@ -133,3 +133,11 @@ if __name__ == "__main__":
                                      checkpoint_dir=classification_model_dir)
 
     # model.save(model_path)
+
+
+    # knihovny
+    # augmentace
+    # pouzite site
+    # dulezite casti kodu
+    # zminka problemu
+    #

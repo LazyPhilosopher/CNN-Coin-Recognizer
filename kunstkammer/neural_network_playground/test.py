@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 
 import numpy as np
+from matplotlib import pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 from core.utilities.helper import get_directories, get_files
 from kunstkammer.neural_network_playground.classification import ClassificationModel
@@ -11,7 +13,7 @@ import tensorflow as tf
 
 
 trained_model_dir = Path(os.path.dirname(__file__), "trained")
-catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_200")
+catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_30")
 crop_shape = (128, 128)
 classification_shape = (512, 512)
 
@@ -24,17 +26,17 @@ if __name__ == "__main__":
     classification_model = ClassificationModel(classification_shape)
 
     # test_samples = [
-    #     "(Czech Republic, 50 Korun, 2008)/0_9.png",
-    #     "(Czech Republic, 1 Koruna, 2018)/1_8.png",
-    #     "(USA, 2.5 Dollar, 1909)/1_7.png",
-    #     "(Great britain, 0.5 Souvereign, 1906)/0_3.png",
+    #     "(Czech Republic, 50 Korun, 2008)/10_19.png",
+    #     "(Czech Republic, 1 Koruna, 2018)/9_80.png",
+    #     "(USA, 2.5 Dollar, 1909)/2_24.png",
+    #     "(Great britain, 0.5 Souvereign, 1906)/3_3.png",
     #     "(Iran, 0.5 Souvereign, 1925)/4_3.png",
-    #     "(Austria-Hungary, 20 Korona, 1893)/0_8.png",
-    #     "(Czech Republic, 10 Korun, 2020)/0_3.png",
-    #     "(France, 2 Franc, 1917)/0_2.png",
-    #     "(Czech Republic, 5 Korun, 2002)/0_7.png",
-    #     "(India, 1 Rupee, 1840)/4_6.png",
-    #     "(Austria-Hungary, 20 Korona, 1893)/0_1.png",
+    #     "(Austria-Hungary, 20 Korona, 1893)/0_80.png",
+    #     "(Czech Republic, 10 Korun, 2020)/0_31.png",
+    #     "(France, 1 Franc, 1918)/4_21.png",
+    #     "(Czech Republic, 5 Korun, 2002)/10_27.png",
+    #     "(India, 1 Rupee, 1840)/8_26.png",
+    #     "(Austria-Hungary, 20 Korona, 1893)/0_15.png",
     # ]
 
     test_samples = []
@@ -53,10 +55,15 @@ if __name__ == "__main__":
         print(f"Exception: {ex}")
         exit(-1)
 
+    print("=== Model Summary ===")
+    print(crop_model.model.summary())
+    print(classification_model.model.summary())
 
+    true_classes = []
+    predicted_classes = []
     results = {"pass": [], "fail": []}
     for sample_path in test_samples:
-        full_sample_path = str(Path( catalog_path, "images", sample_path))
+        full_sample_path = str(Path(catalog_path, "images", sample_path))
         small_image = crop_model.load_image(full_sample_path)
         image_full = classification_model.load_image(full_sample_path)
 
@@ -73,6 +80,10 @@ if __name__ == "__main__":
         true_class = Path(sample_path).parts[0]
         predict_class = enumerations[np.argmax(result)]
 
+        # Append true and predicted classes to the lists
+        true_classes.append(true_class)
+        predicted_classes.append(predict_class)
+
         if true_class == predict_class:
             results["pass"].append(sample_path)
         else:
@@ -81,6 +92,21 @@ if __name__ == "__main__":
         print(f"[{'PASS' if true_class == predict_class else 'FAIL'}] {true_class} -> {predict_class}")
 
     print(f"Total Pass/Fail: {len(results['pass'])}/{len(results['fail'])}")
+
+    # Generate the confusion matrix
+    labels = list(enumerations)  # Get the list of class names from the enumerations
+    cm = confusion_matrix(true_classes, predicted_classes, labels=labels)
+
+    # Display and/or save the confusion matrix
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+    disp.plot(cmap=plt.cm.Blues, xticks_rotation='vertical')
+
+    # Show the confusion matrix in a pop-up window
+    plt.title("Confusion Matrix")
+    plt.show()
+
+    # Optionally save the confusion matrix as an image
+    plt.savefig("confusion_matrix.png")
 
 
 
