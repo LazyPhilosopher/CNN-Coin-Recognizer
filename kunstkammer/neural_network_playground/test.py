@@ -13,12 +13,12 @@ import tensorflow as tf
 
 
 trained_model_dir = Path(os.path.dirname(__file__), "trained")
-catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_30")
+catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_50")
 crop_shape = (128, 128)
 classification_shape = (512, 512)
 
-crop_model_name = "crop_model_30"
-classification_model_name = "classification_model_30"
+crop_model_name = "remastered_crop_model_50"
+classification_model_name = "remastered_classification_model_200"
 
 if __name__ == "__main__":
 
@@ -55,9 +55,9 @@ if __name__ == "__main__":
         print(f"Exception: {ex}")
         exit(-1)
 
-    print("=== Model Summary ===")
-    print(crop_model.model.summary())
-    print(classification_model.model.summary())
+    # print("=== Model Summary ===")
+    # print(crop_model.model.summary())
+    # print(classification_model.model.summary())
 
     true_classes = []
     predicted_classes = []
@@ -101,15 +101,9 @@ if __name__ == "__main__":
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
     disp.plot(cmap=plt.cm.Blues, xticks_rotation='vertical')
 
-    # Show the confusion matrix in a pop-up window
-    plt.title("Confusion Matrix")
-    plt.show()
-
     # Optionally save the confusion matrix as an image
     plt.savefig("confusion_matrix.png")
 
-
-
-
-
-
+    # Show the confusion matrix in a pop-up window
+    plt.title("Confusion Matrix")
+    plt.show()

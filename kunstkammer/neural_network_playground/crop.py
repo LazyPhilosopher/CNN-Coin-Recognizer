@@ -3,7 +3,6 @@ from pathlib import Path
 
 from core.helper import construct_pairs, threshold_to_black_and_white, save_tensor_as_png
 from core.utilities.helper import get_directories, get_files, apply_rgb_mask
-from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 
@@ -17,7 +16,7 @@ class CropModel:
     def load_model(self, model_testrun_dir: Path | str):
         try:
             testrun_name = model_testrun_dir.parts[-1]
-            full_model_path = str(Path(model_testrun_dir, f"keras_{testrun_name}.h5"))
+            full_model_path = str(Path(model_testrun_dir, f"keras_{testrun_name}.keras"))
             self.model = tf.keras.models.load_model(full_model_path)
             print(f"=== Successfully loaded model: {full_model_path} ===")
             return True
@@ -26,13 +25,13 @@ class CropModel:
 
     def save(self, model_testrun_dir):
         testrun_name = model_testrun_dir.parts[-1]
-        full_model_path = str(Path(model_testrun_dir, f"keras_{testrun_name}.h5"))
+        full_model_path = str(Path(model_testrun_dir, f"keras_{testrun_name}.keras"))
         self.model.save(full_model_path)
 
-    def create_train_val_datasets(self, dataset_path: Path | str, validation_split: float = 0.2):
-        dataset_path = str(dataset_path)
-        pairs = construct_pairs(x_dir_path=Path(dataset_path, "images"), y_dir_path=Path(dataset_path, "masks"))
-        train_pairs, val_pairs = train_test_split(pairs, test_size=validation_split)
+    # def create_train_val_datasets(self, dataset_path: Path | str, validation_split: float = 0.2):
+    #     dataset_path = str(dataset_path)
+    #     pairs = construct_pairs(x_dir_path=Path(dataset_path, "images"), y_dir_path=Path(dataset_path, "masks"))
+    #     train_pairs, val_pairs = train_test_split(pairs, test_size=validation_split)
 
     def load_image(self, image_path: Path | str, resize_shape=None):
         if not resize_shape:
@@ -53,12 +52,17 @@ class CropModel:
         return threshold_to_black_and_white(predicted_mask, threshold=threshold)
 
     def train_model(self, checkpoint_path, train_dataset, val_dataset, num_epochs):
-        full_checkpoint_path = Path(checkpoint_path, f"keras_{checkpoint_path.parts[-1]}.h5")
+        full_checkpoint_path = Path(checkpoint_path, f"keras_{checkpoint_path.parts[-1]}.keras")
 
         callbacks = [
-            ModelCheckpoint(full_checkpoint_path, monitor='loss', verbose=1, save_best_only=True),
-            ReduceLROnPlateau(monitor='loss', factor=0.1, patience=5, min_lr=1e-7, verbose=1),
-            EarlyStopping(monitor='loss', patience=20, restore_best_weights=False)
+            ModelCheckpoint(
+                full_checkpoint_path,
+                monitor="val_loss",
+                verbose=1,
+                save_best_only=True
+            ),
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=1e-7, verbose=1),
+            EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=False)
         ]
 
         return self.model.fit(train_dataset,
@@ -66,6 +70,7 @@ class CropModel:
                   epochs=num_epochs,
                   callbacks=callbacks
                   )
+
 
     def predict_dir(self, input_dir, output_dir, output_shape):
         if not os.path.exists(output_dir):

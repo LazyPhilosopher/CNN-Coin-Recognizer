@@ -4,13 +4,14 @@ import sys
 import time
 from multiprocessing import Process
 from pathlib import Path
-import tensorflow as tf
+from random import uniform
 
-from PySide6.QtGui import QImage
+import tensorflow as tf
 from PySide6.QtCore import QTimer, QObject, QCoreApplication
+from PySide6.QtGui import QImage
 
 from core.utilities.helper import parse_directory_into_dictionary, qimage_to_cv2, imgaug_transformation, cv2_to_qimage, \
-    transparent_to_hue, transparent_to_mask
+    transparent_to_mask
 
 tf.config.set_visible_devices([], 'GPU')
 
@@ -18,6 +19,7 @@ tf.config.set_visible_devices([], 'GPU')
 COLOR_GREEN = "\033[92m"
 COLOR_BLUE = "\033[94m"
 COLOR_RESET = "\033[0m"
+COLOR_RED   = "\033[31"
 
 
 class CustomFormatter(logging.Formatter):
@@ -87,7 +89,7 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
     cv2_cropped_image = qimage_to_cv2(cropped_image)
     cv2_cropped_mask = transparent_to_mask(cv2_cropped_image)
 
-    for i in range(30):
+    for i in range(50):
         cv2_augmented_image, cv2_augmented_mask, cv2_augmented_crop = (
             imgaug_transformation(image=cv2_uncropped_image, mask=cv2_cropped_mask, transparent=cv2_cropped_image))
 
@@ -97,11 +99,18 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
         crop = cv2_to_qimage(cv2_augmented_crop)
 
         image.save(
-            os.path.join(f"{os.path.join(augmentation_path, 'images', coin_dir, filename_without_extension)}_{i}.png"))
+            os.path.join(image_path := f"{os.path.join(augmentation_path, 'images', coin_dir, filename_without_extension)}_{i}.png"))
+        # time.sleep(uniform(1, 5))
         mask.save(
-            os.path.join(f"{os.path.join(augmentation_path, 'masks', coin_dir, filename_without_extension)}_{i}.png"))
+            os.path.join(mask_path := f"{os.path.join(augmentation_path, 'masks', coin_dir, filename_without_extension)}_{i}.png"))
+        # time.sleep(uniform(1, 5))
         crop.save(
-            os.path.join(f"{os.path.join(augmentation_path, 'crops', coin_dir, filename_without_extension)}_{i}.png"))
+            os.path.join(crop_path := f"{os.path.join(augmentation_path, 'crops', coin_dir, filename_without_extension)}_{i}.png"))
+        # time.sleep(uniform(1, 5))
+
+        # QImage(image_path)
+        # QImage(mask_path)
+        # QImage(crop_path)
 
 
 def get_augmentation_tasks():
@@ -156,9 +165,15 @@ class Worker:
 
     def run(self):
         worker_name = f"{COLOR_BLUE}Worker [{self.name}] sec"
-        logging.info(f"{worker_name}: {COLOR_BLUE}started.{COLOR_RESET}")
-        augment(self.augmentation_path, self.coin_dir, self.cropped_coin_photo_path, self.uncropped_coin_photo_path)
-        logging.info(f"{worker_name}: {COLOR_BLUE}finished.{COLOR_RESET}")
+        try:
+            logging.info(f"{worker_name}: {COLOR_BLUE}started.{COLOR_RESET}")
+            # time.sleep(uniform(1, 10))  # Simulate random delay
+            augment(self.augmentation_path, self.coin_dir, self.cropped_coin_photo_path, self.uncropped_coin_photo_path)
+            logging.info(f"{worker_name}: {COLOR_BLUE}finished.{COLOR_RESET}")
+        except Exception as e:
+            logging.error(f"{worker_name}: {COLOR_RED}Error: {e}{COLOR_RESET}")
+        finally:
+            time.sleep(5)
 
 
 class WorkerManager(QObject):
@@ -173,7 +188,7 @@ class WorkerManager(QObject):
         # Timer to periodically check for completed processes
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_running_processes)
-        self.timer.start(10)  # Check every 100 ms
+        self.timer.start(1000)  # Check every 100 ms
 
     def run_workers(self, aug_tasks):
         # Queue up all tasks initially
@@ -235,7 +250,7 @@ if __name__ == "__main__":
 
     app = QCoreApplication(sys.argv)
 
-    manager = WorkerManager(process_count=80)
+    manager = WorkerManager(process_count=8)
     aug_tasks = get_augmentation_tasks()
 
     manager.run_workers(aug_tasks)

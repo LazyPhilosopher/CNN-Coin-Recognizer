@@ -82,7 +82,7 @@ def load_enumerations(enum_path: Path | str):
     return enumerations
 
 
-def load_image(image_path, size, add_aplha=False):
+def load_image(image_path, size, add_aplha=False, is_mask=False):
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)  # For RGB images
     image = tf.image.resize(image, size)
@@ -94,6 +94,9 @@ def load_image(image_path, size, add_aplha=False):
         image_with_alpha = image_with_alpha / 255.0
         return image_with_alpha
 
+    # if is_mask:
+    #     image = tf.image.convert_image_dtype(image, tf.float32)
+
     image = image / 255.0
     return image
 
@@ -102,7 +105,7 @@ def create_dataset(pairs, batch_size, image_shape):
     def process_pair(input_path, output_path):
         input_image = load_image(input_path, image_shape)
         # output_image = load_image(output_path, image_shape, add_aplha=True)
-        output_image = load_image(output_path, image_shape)
+        output_image = load_image(output_path, image_shape, is_mask=True)
         return input_image, output_image
 
     input_paths, output_paths = zip(*pairs)

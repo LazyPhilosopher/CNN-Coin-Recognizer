@@ -1,6 +1,8 @@
 import json
 import os
 from pathlib import Path
+
+import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
@@ -11,18 +13,22 @@ from kunstkammer.neural_network_playground.core.models import build_resnet34_mod
 from kunstkammer.neural_network_playground.crop import CropModel
 
 trained_model_dir = Path(os.path.dirname(__file__), "trained")
-catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_30")
+catalog_path = Path("D:/Projects/bachelor_thesis/OpenCV2-Coin-Recognizer/coin_catalog/augmented_50")
 crop_shape = (128, 128)
 classification_shape = (512, 512)
 validation_split = 0.2
 batch_size = 1
-lr = 1e-4
+lr = 1e-5
 
-crop_epochs = 15
-classification_epochs = 30
+crop_epochs = 25
+classification_epochs = 100
 
-crop_model_name = "crop_model_30"
-classification_model_name = "classification_model_30"
+seed = 42
+np.random.seed(seed)
+tf.random.set_seed(seed)
+
+crop_model_name = "remastered_crop_model_50"
+classification_model_name = "remastered_classification_model_50"
 
 
 if __name__ == "__main__":
@@ -42,6 +48,7 @@ if __name__ == "__main__":
     classification_val_dataset_path = Path(output_dir, f"{classification_model_name}/val_dataset_{classification_model_name}.tfrecord")
     classification_enum_path = Path(output_dir, f"{classification_model_name}/enums.json")
 
+    """ Crop Model Preparation """
     try:
         crop_train_dataset = tf.data.Dataset.load(str(crop_train_dataset_path))
         crop_val_dataset = tf.data.Dataset.load(str(crop_val_dataset_path))
@@ -64,24 +71,34 @@ if __name__ == "__main__":
 
         print("=== Save datasets ===")
         crop_train_dataset.save(str(crop_train_dataset_path))
+        # crop_train_dataset.save("D:/Projects/bachelor_thesis\OpenCV2-Coin-Recognizer/kunstkammer/neural_network_playground/trained/remastered_crop_model_30/test.tfrecord")
         crop_val_dataset.save(str(crop_val_dataset_path))
 
     """ Crop Model Training """
     if not crop_model.load_model(crop_model_dir):
         print("=== Crop Model does not exist. Creating a new model... ===")
         crop_model.model = build_resnet34_model(input_shape=(*crop_shape, 3))
+
+        # lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        #     initial_learning_rate=1e-3,
+        #     decay_steps=1000,
+        #     decay_rate=0.96
+        # )
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
+        # crop_model.model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
         crop_model.model.compile(
-            loss="binary_crossentropy",  # Or categorical_crossentropy depending on your problem
-            optimizer=tf.keras.optimizers.Adam(lr),
-            metrics=["accuracy"]  # Optional: Add accuracy or other metrics to monitor during training
+            loss="binary_crossentropy",
+            optimizer=tf.keras.optimizers.Adam(lr)
         )
 
     crop_model.train_model(train_dataset=crop_train_dataset, val_dataset=crop_val_dataset, num_epochs=crop_epochs, checkpoint_path=crop_model_dir)
     crop_model.save(crop_model_dir)
-    #
-    # crop_model.predict_dir(input_dir=Path(catalog_path, "images"), output_dir=Path(catalog_path, "predict_masks"), output_shape=classification_shape)
 
-    """ Identification Model Training """
+    crop_model.predict_dir(input_dir=Path(catalog_path, "images"), output_dir=Path(catalog_path, "predict_masks"), output_shape=classification_shape)
+    input(f"Please clean up {Path(catalog_path, 'predict_masks')}")
+
+    """ Classification Model Preparation """
     try:
         # raise Exception
         train_dataset = tf.data.Dataset.load(str(classification_train_dataset_path))
@@ -117,7 +134,7 @@ if __name__ == "__main__":
         with open(classification_enum_path, "w") as f:
             json.dump(enumerations, f, indent=4)
 
-    """ Model """
+    """ Classification Model Training """
     model_path = Path(output_dir, f"{classification_model_name}/keras_{classification_model_name}.h5")
 
     if not classification_model.load_model(classification_model_dir):

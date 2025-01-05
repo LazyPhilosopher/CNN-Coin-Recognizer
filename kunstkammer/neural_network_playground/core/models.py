@@ -1,5 +1,7 @@
 import tensorflow as tf
-from keras.layers import Multiply, Add, RandomFlip, RandomRotation, RandomZoom
+from keras.layers import Multiply, Add, RandomFlip, RandomRotation, RandomZoom, RandomCrop, RandomContrast, \
+    RandomBrightness
+from keras.regularizers import l2
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten, BatchNormalization, Activation, \
     UpSampling2D, Concatenate, Input, Rescaling
@@ -104,20 +106,39 @@ def build_conv_model(input_shape, class_amnt):
     data_augmentation = Sequential([
         RandomFlip("horizontal", input_shape=(*input_shape, 3)),
         RandomRotation(0.1),
-        RandomZoom(0.1)
+        RandomZoom(0.1),
+        RandomBrightness(0.2),
+        RandomContrast(0.2),
+        RandomCrop(height=int(input_shape[0] * 0.9), width=int(input_shape[1] * 0.9)),
     ])
 
     return Sequential([
-        data_augmentation,
-        Rescaling(1. / 255),
-        Conv2D(16, 3, padding='same', activation='relu'),
-        MaxPooling2D(),
-        Conv2D(32, 3, padding='same', activation='relu'),
-        MaxPooling2D(),
-        Conv2D(64, 3, padding='same', activation='relu'),
-        MaxPooling2D(),
-        Dropout(0.2),
-        Flatten(),
-        Dense(128, activation='relu'),
-        Dense(class_amnt)
-    ])
+            data_augmentation,
+            Rescaling(1.0 / 255),
+            Conv2D(filters=64, kernel_size=(5, 5), padding='same', activation='relu', input_shape=(*input_shape, 3)),
+            MaxPooling2D(pool_size=(2, 2)),
+
+            Conv2D(filters=64, kernel_size=(3, 3), padding='same', activation='relu'),
+            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
+
+            Conv2D(filters=64, kernel_size=(3, 3), padding='same', activation='relu'),
+            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
+
+            Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu'),
+            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
+
+            Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu'),
+            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
+
+            Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu'),
+            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
+
+            Conv2D(filters=64, kernel_size=(3, 3), padding='same', activation='relu'),
+            MaxPooling2D(pool_size=(2, 2), strides=(2, 2)),
+            Dropout(0.5),
+
+            Flatten(),
+            Dense(128),
+            Activation('relu'),
+            Dense(class_amnt, kernel_regularizer=l2(0.1), activation="softmax")
+        ])
