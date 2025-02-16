@@ -3,7 +3,9 @@ from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from sklearn.metrics import (ConfusionMatrixDisplay, confusion_matrix,
+                             classification_report, accuracy_score,
+                             precision_score, recall_score, f1_score)
 
 # from core.utilities.helper import get_directories, get_files
 # from kunstkammer.neural_network_playground.classification import ClassificationModel
@@ -120,10 +122,23 @@ if __name__ == "__main__":
     # Display and/or save the confusion matrix
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
     disp.plot(cmap=plt.cm.Blues, xticks_rotation='vertical')
-
-    # Optionally save the confusion matrix as an image
-    plt.savefig("confusion_matrix.png")
-
-    # Show the confusion matrix in a pop-up window
     plt.title("Confusion Matrix")
+    plt.savefig("confusion_matrix.png")
     plt.show()
+
+    # Compute and print additional metrics
+    accuracy = accuracy_score(true_classes, predicted_classes)
+    precision = precision_score(true_classes, predicted_classes, average='weighted', zero_division=0)
+    recall = recall_score(true_classes, predicted_classes, average='weighted', zero_division=0)
+    f1 = f1_score(true_classes, predicted_classes, average='weighted', zero_division=0)
+
+    print("\n=== Evaluation Metrics ===")
+    print(f"Accuracy:  {accuracy:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall:    {recall:.4f}")
+    print(f"F1 Score:  {f1:.4f}")
+
+    # Optionally, print a full classification report
+    report = classification_report(true_classes, predicted_classes, labels=labels, zero_division=0)
+    print("\nClassification Report:")
+    print(report)
