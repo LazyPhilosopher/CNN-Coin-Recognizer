@@ -1,10 +1,12 @@
 import sys
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from core.gui.ImageCollector import ImageCollector
 from core.modules.processing_module.ProcessingModule import ProcessingModule
 from core.modules.video_module.video_module import VideoModule
+from core.utilities.helper import resource_path, show_popup
 
 
 class ImageCollectorApp:

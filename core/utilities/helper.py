@@ -1,23 +1,27 @@
+import ctypes
+import json
 import os
+import sys
 from pathlib import Path
-
-import os
-from pathlib import Path
+from typing import Optional, Any, Union, Tuple, cast
 
 import cv2
 import imgaug as ia
 import imgaug.augmenters as iaa
 import numpy as np
+import onnxruntime as ort
 import tensorflow as tf
+from PIL import Image
+from PIL.Image import Image as PILImage
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QTabWidget
-from rembg import remove
-from skimage import transform, filters, util
-from skimage.util import random_noise
+
+from core.utilities.bg import get_concat_v_multi, apply_background_color, naive_cutout, putalpha_cutout, \
+    alpha_matting_cutout, post_process
+from core.utilities.u2net.session.u2net import U2netSession
 
 
-# import win32com.client
-
+u2net = U2netSession("u2net", ort.SessionOptions(), None, (), ())
 
 def apply_rgb_mask(image_tensor, mask_tensor):
     """
@@ -80,16 +84,86 @@ def parse_directory_into_dictionary(dir_path: Path):
         return None
 
 
-# def remove_background_rembg(worker_uuid: str, arg_dict: dict, pipe_dict: dict):
-#     picture = arg_dict["picture"]
-#     result_output_pipe = pipe_dict["background_removal_done"]
-#     print(f"remove_background_rembg: {result_output_pipe}")
-#
-#     picture = remove(picture)
-#     picture = cv2.cvtColor(picture, cv2.COLOR_BGRA2RGBA)
-#     print(f"remove_background_rembg picture")
-#
-#     result_output_pipe.send({"data": picture})
+def remove(
+    data: Union[bytes, PILImage, np.ndarray],
+    alpha_matting: bool = False,
+    alpha_matting_foreground_threshold: int = 240,
+    alpha_matting_background_threshold: int = 10,
+    alpha_matting_erode_size: int = 10,
+    only_mask: bool = False,
+    post_process_mask: bool = False,
+    bgcolor: Optional[Tuple[int, int, int, int]] = None,
+    *args: Optional[Any],
+    **kwargs: Optional[Any]
+) -> Union[bytes, PILImage, np.ndarray]:
+    """
+    Remove the background from an input image.
+
+    This function takes in various parameters and returns a modified version of the input image with the background removed. The function can handle input data in the form of bytes, a PIL image, or a numpy array. The function first checks the type of the input data and converts it to a PIL image if necessary. It then fixes the orientation of the image and proceeds to perform background removal using the 'u2net' model. The result is a list of binary masks representing the foreground objects in the image. These masks are post-processed and combined to create a final cutout image. If a background color is provided, it is applied to the cutout image. The function returns the resulting cutout image in the format specified by the input 'return_type' parameter or as python bytes if force_return_bytes is true.
+
+    Parameters:
+        data (Union[bytes, PILImage, np.ndarray]): The input image data.
+        alpha_matting (bool, optional): Flag indicating whether to use alpha matting. Defaults to False.
+        alpha_matting_foreground_threshold (int, optional): Foreground threshold for alpha matting. Defaults to 240.
+        alpha_matting_background_threshold (int, optional): Background threshold for alpha matting. Defaults to 10.
+        alpha_matting_erode_size (int, optional): Erosion size for alpha matting. Defaults to 10.
+        only_mask (bool, optional): Flag indicating whether to return only the binary masks. Defaults to False.
+        post_process_mask (bool, optional): Flag indicating whether to post-process the masks. Defaults to False.
+        bgcolor (Optional[Tuple[int, int, int, int]], optional): Background color for the cutout image. Defaults to None.
+        *args (Optional[Any]): Additional positional arguments.
+        **kwargs (Optional[Any]): Additional keyword arguments.
+
+    Returns:
+        Union[bytes, PILImage, np.ndarray]: The cutout image with the background removed.
+    """
+    img = cast(PILImage, Image.fromarray(data))
+
+    putalpha = kwargs.pop("putalpha", False)
+
+    # Fix image orientation
+    # img = fix_image_orientation(img)
+
+    masks = u2net.predict(img, *args, **kwargs)
+    cutouts = []
+
+    for mask in masks:
+        if post_process_mask:
+            mask = Image.fromarray(post_process(np.array(mask)))
+
+        if only_mask:
+            cutout = mask
+
+        elif alpha_matting:
+            try:
+                cutout = alpha_matting_cutout(
+                    img,
+                    mask,
+                    alpha_matting_foreground_threshold,
+                    alpha_matting_background_threshold,
+                    alpha_matting_erode_size,
+                )
+            except ValueError:
+                if putalpha:
+                    cutout = putalpha_cutout(img, mask)
+                else:
+                    cutout = naive_cutout(img, mask)
+        else:
+            if putalpha:
+                cutout = putalpha_cutout(img, mask)
+            else:
+                cutout = naive_cutout(img, mask)
+
+        cutouts.append(cutout)
+
+    cutout = img
+    if len(cutouts) > 0:
+        cutout = get_concat_v_multi(cutouts)
+
+    if bgcolor is not None and not only_mask:
+        cutout = apply_background_color(cutout, bgcolor)
+
+
+    return np.asarray(cutout)
 
 def remove_background_rembg(img):
     img = remove(img)
@@ -345,3 +419,176 @@ def threshold_to_black_and_white(image_tensor, threshold=0.004):
     result = tf.where(mask[..., tf.newaxis], white_pixel, black_pixel)
 
     return result
+
+
+# import json
+# import os
+# from pathlib import Path
+# import tensorflow as tf
+#
+# def get_directories(directory_path: Path):
+#     return [entry for entry in directory_path.iterdir() if entry.is_dir()]
+
+def construct_pairs(x_dir_path: Path, y_dir_path: Path):
+    pairs = []
+
+    enumerations = [str(coin.parts[-1]) for coin in get_directories(Path(x_dir_path))]
+    for class_name in enumerations:
+        input_class_dir = os.path.join(x_dir_path, class_name)
+        output_class_dir = os.path.join(y_dir_path, class_name)
+        if os.path.isdir(input_class_dir) and os.path.isdir(output_class_dir):
+            input_images = sorted(os.listdir(input_class_dir))
+            output_images = sorted(os.listdir(output_class_dir))
+            for img_name in input_images:
+                if img_name in output_images:  # Match input-output pairs
+                    pairs.append((
+                        os.path.join(input_class_dir, img_name),
+                        os.path.join(output_class_dir, img_name)
+                    ))
+    return pairs
+
+
+# def threshold_to_black_and_white(image_tensor, threshold=0.004):
+#     """
+#     Converts an RGB tensor to a black-and-white tensor based on a threshold.
+#     Pixels where all channels are >= threshold are set to White (1.0, 1.0, 1.0).
+#     Otherwise, they are set to Black (0.0, 0.0, 0.0).
+#
+#     Args:
+#         image_tensor: TensorFlow tensor of shape (height, width, 3) with RGB values.
+#         threshold: Float value for the threshold.
+#
+#     Returns:
+#         A tensor of the same shape as the input with values set to either (1.0, 1.0, 1.0) or (0.0, 0.0, 0.0).
+#     """
+#     # Create a boolean mask where all channels are >= threshold
+#     mask = tf.reduce_all(image_tensor >= threshold, axis=-1)  # Shape: (height, width)
+#
+#     # Create a white pixel tensor (1, 1, 1)
+#     # white_pixel = tf.constant([1, 1, 1], dtype=image_tensor.dtype)
+#     white_pixel = tf.constant([1, 1, 1], dtype=tf.uint8)
+#
+#     # Create a black pixel tensor (0, 0, 0)
+#     # black_pixel = tf.constant([0, 0, 0], dtype=image_tensor.dtype)
+#     black_pixel = tf.constant([0, 0, 0], dtype=tf.uint8)
+#
+#     # Apply the mask to choose between white and black
+#     result = tf.where(mask[..., tf.newaxis], white_pixel, black_pixel)
+#
+#     return result
+#
+#
+# def apply_rgb_mask(image_tensor, mask_tensor):
+#     """
+#     Masks an RGB image with a binary RGB mask. Keeps original pixel values where the mask is white (1, 1, 1),
+#     and sets to black (0, 0, 0) where the mask is black (0, 0, 0).
+#
+#     Args:
+#         image_tensor: TensorFlow tensor of shape (height, width, 3) representing the original RGB image.
+#         mask_tensor: TensorFlow tensor of shape (height, width, 3) representing the binary RGB mask
+#                      with values either (1, 1, 1) or (0, 0, 0).
+#
+#     Returns:
+#         A TensorFlow tensor of the same shape as the input, masked by the binary mask.
+#     """
+#     # Ensure mask is binary (1s or 0s)
+#     mask_bool = tf.reduce_all(mask_tensor == 1, axis=-1, keepdims=True)  # Shape: (height, width, 1)
+#
+#     # Use tf.where to apply the mask
+#     result = tf.where(mask_bool, image_tensor, tf.zeros_like(image_tensor))
+#
+#     return result
+
+def load_enumerations(enum_path: Path | str):
+    with open(os.path.join(enum_path, "enums.json"), "r") as f:
+        enumerations = json.load(f)
+    return enumerations
+
+
+def load_image(image_path, size, add_aplha=False, is_mask=False):
+    image = tf.io.read_file(image_path)
+    image = tf.image.decode_png(image, channels=3)  # For RGB images
+    image = tf.image.resize(image, size)
+
+    if add_aplha:
+        alpha_channel = tf.ones_like(image[..., :1])
+        image_with_alpha = tf.concat([image, alpha_channel], axis=-1)
+        image_with_alpha = tf.image.resize(image_with_alpha, size)
+        image_with_alpha = image_with_alpha / 255.0
+        return image_with_alpha
+
+    # if is_mask:
+    #     image = tf.image.convert_image_dtype(image, tf.float32)
+
+    image = image / 255.0
+    return image
+
+
+def create_dataset(pairs, batch_size, image_shape):
+    def process_pair(input_path, output_path):
+        input_image = load_image(input_path, image_shape)
+        # output_image = load_image(output_path, image_shape, add_aplha=True)
+        output_image = load_image(output_path, image_shape, is_mask=True)
+        return input_image, output_image
+
+    input_paths, output_paths = zip(*pairs)
+    dataset = tf.data.Dataset.from_tensor_slices((list(input_paths), list(output_paths)))
+    dataset = dataset.map(lambda x, y: process_pair(x, y),
+                          num_parallel_calls=tf.data.AUTOTUNE)
+    dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    return dataset
+
+
+def save_tensor_as_png(tensor, file_path, bit_depth=8):
+    """
+    Saves a floating-point tensor as a PNG file.
+
+    Args:
+        tensor: TensorFlow tensor of shape (height, width, channels) with floating-point values.
+        file_path: String path to save the PNG file.
+        bit_depth: Integer, bit depth for the PNG file (8 or 16).
+    """
+    # Ensure the tensor is in the range [0.0, 1.0]
+    tensor = tf.clip_by_value(tensor, 0.0, 1.0)
+
+    # Scale tensor to the appropriate integer range
+    if bit_depth == 8:
+        tensor = tf.cast(tensor * 255.0, tf.uint8)  # Scale to [0, 255]
+    elif bit_depth == 16:
+        tensor = tf.cast(tensor * 65535.0, tf.uint16)  # Scale to [0, 65535]
+    else:
+        raise ValueError("bit_depth must be either 8 or 16")
+
+    # Encode as PNG
+    png_bytes = tf.io.encode_png(tensor)
+
+    # Save to file
+    tf.io.write_file(file_path, png_bytes)
+
+def resource_path(relative_path):
+    """Get the absolute path to a resource (icon, etc.) bundled with the app."""
+    try:
+        # PyInstaller creates a temp folder for bundled app resources
+        if getattr(sys, 'frozen', False):
+            # Running in a bundled app
+            base_path = sys._MEIPASS
+        else:
+            # Running in a normal script
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+    except Exception as e:
+        print(f"Error accessing resource: {e}")
+        return None
+
+def show_popup(message, title="Debug", style=0x40):
+    """
+    Displays a Windows popup message.
+
+    Parameters:
+        message (str): The message to display.
+        title (str): The title of the popup window.
+        style (int): The style flag for the MessageBox (0x40 for information,
+                     0x10 for error, etc.)
+    """
+    ctypes.windll.user32.MessageBoxW(0, message, title, style)

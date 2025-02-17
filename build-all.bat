@@ -1,0 +1,1 @@
+pyinstaller build\image_collector.spec --distpath=build\dist --noconfirm

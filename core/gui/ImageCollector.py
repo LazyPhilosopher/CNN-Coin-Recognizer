@@ -15,7 +15,7 @@ from core.qt_communication.messages.processing_module.Responses import Processed
 from core.qt_communication.messages.video_module.Requests import CameraListRequest, ChangeVideoInput
 from core.qt_communication.messages.video_module.Responses import CameraListResponse, FrameAvailable
 from core.utilities.helper import parse_directory_into_dictionary, create_coin_directory, get_files, \
-    crop_vertices_mask_from_image, get_tab_index_by_label
+    crop_vertices_mask_from_image, get_tab_index_by_label, resource_path
 
 catalog_dir = Path("coin_catalog")
 
@@ -25,6 +25,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
         self.qt_signals = CommonSignals()
         self.module: Modules = Modules.IMAGE_COLLECTOR_WINDOW
 
@@ -33,7 +34,7 @@ class ImageCollector(QMainWindow, Ui_ImageCollector):
         self.image_label.setGeometry(0, 0, self.video_frame.width(), self.video_frame.height())
         self.image_label.setScaledContents(True)
 
-        self.setWindowIcon(QIcon("core/gui/images/camera.png"))
+        self.setWindowIcon(QIcon(resource_path("core/gui/images/camera.png")))
         self.coin_catalog = None
         self.image_idx: int = 0
 
