@@ -11,7 +11,7 @@ import tensorflow as tf
 from PySide6.QtCore import QTimer, QObject, QCoreApplication
 from PySide6.QtGui import QImage
 
-from image_collector.core.utilities.helper import qimage_to_cv2, transparent_to_mask, imgaug_transformation, \
+from core.utilities.helper import qimage_to_cv2, transparent_to_mask, imgaug_transformation, \
     cv2_to_qimage, parse_directory_into_dictionary
 
 tf.config.set_visible_devices([], 'GPU')
@@ -108,8 +108,6 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
                 logging.error(f"{COLOR_RED}Error: Was not able to save all three images!{COLOR_RESET}")
                 error_amnt += 1
                 time.sleep(1000)
-
-
 
 def get_augmentation_tasks(picture_augmentation_amount: int):
     out = []
@@ -254,6 +252,10 @@ class WorkerManager(QObject):
             self.timer.stop()
             QCoreApplication.quit()
 
+def confirm_exit():
+    os.system('pause')
+    sys.exit(1)
+
 def load_config() -> dict:
     """
     Reads the augmentation_config.txt file (which must reside in the same directory as the program)
@@ -263,7 +265,7 @@ def load_config() -> dict:
     config_file = Path(__file__).resolve().parent / "augmentation_config.txt"
     if not config_file.is_file():
         logging.error("Configuration file augmentation_config.txt not found in the current directory.")
-        sys.exit(1)
+        confirm_exit()
 
     config_data = {}
     with config_file.open("r") as f:
@@ -273,7 +275,7 @@ def load_config() -> dict:
                 continue
             if "=" not in line:
                 logging.error(f"Invalid configuration line: {line}")
-                sys.exit(1)
+                confirm_exit()
             key, val = line.split("=", 1)
             config_data[key.strip()] = val.strip()
 
@@ -292,27 +294,27 @@ def load_config() -> dict:
     for key, schema in config_schema.items():
         if key not in config_data:
             logging.error(f"Missing configuration key: {key}")
-            sys.exit(1)
+            confirm_exit()
         try:
             # Evaluate the value with restricted globals.
             # This allows arithmetic expressions like "0.1 * 255" to be computed.
             value = eval(config_data[key], {"__builtins__": {}})
         except Exception as e:
             logging.error(f"Error evaluating configuration key '{key}': {e}")
-            sys.exit(1)
+            confirm_exit()
         if schema["type"] == int:
             if not isinstance(value, int):
                 logging.error(f"Configuration key '{key}' must be an integer. Got {value} of type {type(value)}")
-                sys.exit(1)
+                confirm_exit()
         elif schema["type"] == tuple:
             if not isinstance(value, tuple) or len(value) != schema["length"]:
                 logging.error(f"Configuration key '{key}' must be a tuple of length {schema['length']}. Got {value}")
-                sys.exit(1)
+                confirm_exit()
             # Check that each element is a number (int or float)
             for element in value:
                 if not isinstance(element, (int, float)):
                     logging.error(f"Configuration key '{key}' must be a tuple of numbers. Got element {element} of type {type(element)}")
-                    sys.exit(1)
+                    confirm_exit()
         config[key] = value
     return config
 

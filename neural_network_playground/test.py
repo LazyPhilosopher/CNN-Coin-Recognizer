@@ -7,14 +7,9 @@ from sklearn.metrics import (ConfusionMatrixDisplay, confusion_matrix,
                              classification_report, accuracy_score,
                              precision_score, recall_score, f1_score)
 
-# from core.utilities.helper import get_directories, get_files
-# from kunstkammer.neural_network_playground.classification import ClassificationModel
-# from kunstkammer.neural_network_playground.core.helper import apply_rgb_mask, load_enumerations
-# from kunstkammer.neural_network_playground.crop import CropModel
 import tensorflow as tf
 
-from image_collector.core.utilities.helper import get_files, get_directories, apply_rgb_mask
-from neural_network_playground.core.helper import load_enumerations
+from core.utilities.helper import get_files, get_directories, apply_rgb_mask, load_enumerations
 from neural_network_playground.models.classification import ClassificationModel
 from neural_network_playground.models.crop import CropModel
 

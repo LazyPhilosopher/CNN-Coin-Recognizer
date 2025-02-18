@@ -17,10 +17,11 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['..//core//utilities//u2net'],
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -29,7 +30,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Multiprocessing Augmentation',
+    name='Multiprocess Augmentation',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -51,7 +52,7 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='Multiprocessing Augmentation',
+    name='Multiprocess Augmentation',
     icon=['..//core//gui//images//camera.png'],
     distpath='.//build//dist'
 )

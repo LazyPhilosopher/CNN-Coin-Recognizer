@@ -14,8 +14,7 @@ from core.qt_communication.messages.processing_module.Requests import RemoveBack
 from core.qt_communication.messages.processing_module.Responses import ProcessedImageResponse
 from core.qt_communication.messages.video_module.Requests import CameraListRequest, ChangeVideoInput
 from core.qt_communication.messages.video_module.Responses import CameraListResponse, FrameAvailable
-from core.utilities.helper import parse_directory_into_dictionary, create_coin_directory, get_files, \
-    crop_vertices_mask_from_image, get_tab_index_by_label, resource_path
+from core.utilities.helper import parse_directory_into_dictionary, create_coin_directory, get_files, resource_path, get_tab_index_by_label, crop_vertices_mask_from_image
 
 catalog_dir = Path("coin_catalog")
 
