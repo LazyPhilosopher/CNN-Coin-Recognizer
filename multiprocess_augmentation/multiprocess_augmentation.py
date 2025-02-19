@@ -262,7 +262,13 @@ def load_config() -> dict:
     and validates that all required configuration keys are present and that their values are of the correct format.
     If a key is missing or a value is invalid, an error is logged and the program exits.
     """
-    config_file = Path(__file__).resolve().parent / "augmentation_config.txt"
+    if getattr(sys, 'frozen', False):
+        base_path = Path(sys.executable).resolve().parent
+    else:
+        base_path = Path(__file__).resolve().parent
+
+    config_file = base_path / "augmentation_config.txt"
+    print("Looking for config file at:", config_file)
     if not config_file.is_file():
         logging.error("Configuration file augmentation_config.txt not found in the current directory.")
         confirm_exit()
@@ -319,18 +325,13 @@ def load_config() -> dict:
     return config
 
 if __name__ == "__main__":
+    from multiprocessing import freeze_support
+    freeze_support()
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     print(f"Available devices: {tf.config.list_physical_devices()}")
-
-
-    # Read and validate the configuration.
     config = load_config()
     app = QCoreApplication(sys.argv)
-
-    # Use the value from the config file for process count.
     manager = WorkerManager(process_count=config["MAX_CONCURRENT_PROCESSES"], augmentation_config=config)
     aug_tasks = get_augmentation_tasks(config["AUGMENTATION_AMOUNT"])
-
     manager.run_workers(aug_tasks)
-
     sys.exit(app.exec())

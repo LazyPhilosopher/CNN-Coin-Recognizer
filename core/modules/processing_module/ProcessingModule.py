@@ -6,8 +6,9 @@ from PySide6.QtWidgets import QApplication
 from core.qt_communication.base import *
 from core.qt_communication.messages.processing_module.Requests import *
 from core.qt_communication.messages.processing_module.Responses import *
-from core.utilities.helper import qimage_to_cv2, remove_background_rembg, cv2_to_qimage, \
+from core.utilities.helper import qimage_to_cv2, cv2_to_qimage, \
     parse_directory_into_dictionary, transparent_to_hue, imgaug_transformation
+from core.utilities.u2net.helper import remove_background_rembg
 
 
 class ProcessingModule(QObject):
