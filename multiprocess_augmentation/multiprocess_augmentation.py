@@ -5,11 +5,11 @@ import time
 import uuid
 from multiprocessing import Process, Pipe
 from pathlib import Path
-from random import uniform
 
 import tensorflow as tf
-from PySide6.QtCore import QTimer, QObject, QCoreApplication
+from PySide6.QtCore import QTimer, QObject
 from PySide6.QtGui import QImage
+from PySide6.QtWidgets import QApplication, QFileDialog
 
 from core.utilities.helper import qimage_to_cv2, transparent_to_mask, imgaug_transformation, \
     cv2_to_qimage, parse_directory_into_dictionary
@@ -22,45 +22,31 @@ COLOR_BLUE = "\033[94m"
 COLOR_RESET = "\033[0m"
 COLOR_RED   = "\033[31m"
 
+
 class CustomFormatter(logging.Formatter):
     def format(self, record):
         record.processName = f"{COLOR_GREEN}{record.processName}{COLOR_RESET}"
         return super().format(record)
 
-def apply_rgb_mask(image_tensor, mask_tensor):
-    """
-    Masks an RGB image with a binary RGB mask. Keeps original pixel values where the mask is white (1, 1, 1),
-    and sets to black (0, 0, 0) where the mask is black (0, 0, 0).
+# def apply_rgb_mask(image_tensor, mask_tensor):
+#     """
+#     Masks an RGB image with a binary RGB mask. Keeps original pixel values where the mask is white (1, 1, 1),
+#     and sets to black (0, 0, 0) where the mask is black (0, 0, 0).
+#     """
+#     mask_bool = tf.reduce_all(mask_tensor == 1, axis=-1, keepdims=True)
+#     result = tf.where(mask_bool, image_tensor, tf.zeros_like(image_tensor))
+#     return result
 
-    Args:
-        image_tensor: TensorFlow tensor of shape (height, width, 3) representing the original RGB image.
-        mask_tensor: TensorFlow tensor of shape (height, width, 3) representing the binary RGB mask
-                     with values either (1, 1, 1) or (0, 0, 0).
-
-    Returns:
-        A TensorFlow tensor of the same shape as the input, masked by the binary mask.
-    """
-    # Ensure mask is binary (1s or 0s)
-    mask_bool = tf.reduce_all(mask_tensor == 1, axis=-1, keepdims=True)  # Shape: (height, width, 1)
-
-    # Use tf.where to apply the mask
-    result = tf.where(mask_bool, image_tensor, tf.zeros_like(image_tensor))
-
-    return result
-
-# Configure logging to avoid overlapping output
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(processName)s - PID:%(process)d] - %(message)s",
     datefmt="%H:%M:%S",
 )
 
-# Apply custom formatter
 logger = logging.getLogger()
 for handler in logger.handlers:
     handler.setFormatter(CustomFormatter('%(asctime)s - [%(processName)s - PID:%(process)d] - %(message)s', datefmt="%H:%M:%S"))
 
-catalog_path = Path("coin_catalog")
 
 def split_path(path):
     normalized_path = os.path.normpath(str(path))
@@ -76,7 +62,6 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
     cv2_cropped_image = qimage_to_cv2(cropped_image)
     cv2_cropped_mask = transparent_to_mask(cv2_cropped_image)
 
-    # Use the configuration value AUGMENTATION_AMOUNT (read from the config file)
     for i in range(augmentation_config["AUGMENTATION_AMOUNT"]):
         cv2_augmented_image, cv2_augmented_mask, cv2_augmented_crop = (
             imgaug_transformation(image=cv2_uncropped_image,
@@ -85,7 +70,7 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
                                   scale_range=augmentation_config["SCALE_RANGE"],
                                   rotation_range=augmentation_config["ROTATION_RANGE"],
                                   gaussian_noise_range=augmentation_config["GAUSSIAN_NOISE_RANGE"],
-                                  salt_and_pepper_noise_range=augmentation_config["SALT_AND_PEPPER_NOSE_RANGE"],
+                                  salt_and_pepper_noise_range=augmentation_config["SALT_AND_PEPPER_NOISE_RANGE"],
                                   poisson_noise_range=augmentation_config["POISSON_NOISE_RANGE"]))
 
         image = cv2_to_qimage(cv2_augmented_image)
@@ -111,6 +96,20 @@ def augment(augmentation_path, coin_dir, cropped_coin_photo_path, uncropped_coin
 
 def get_augmentation_tasks(picture_augmentation_amount: int):
     out = []
+
+    catalog_path = Path("coin_catalog")
+
+    if not catalog_path.is_dir():
+        logging.error(
+            "Image catalog directory not found in the current directory. Please select the location of the image catalog directory.")
+        app = QApplication.instance() or QApplication(sys.argv)
+        selected_directory = QFileDialog.getExistingDirectory(None, "Select image catalog directory", str(catalog_path))
+        if not selected_directory:
+            logging.error("No image catalog directory selected. Exiting.")
+            confirm_exit()
+        catalog_path = Path(selected_directory)
+        logging.info(f"Using image catalog directory: {catalog_path}")
+
     catalog_dict = parse_directory_into_dictionary(catalog_path)
     augmentation_path = os.path.join(catalog_path, f"augmented_{picture_augmentation_amount}")
     os.makedirs(augmentation_path, exist_ok=True)
@@ -170,17 +169,15 @@ class Worker:
             logging.error(f"{worker_name}: {COLOR_RED}Error: {e}{COLOR_RESET}")
         self.process_pipe.send(self.uuid)
 
-
 class WorkerManager(QObject):
     def __init__(self, process_count, augmentation_config):
         super().__init__()
         self.name = f"{COLOR_BLUE}WorkerManager{COLOR_RESET}"
         self.max_processes = process_count
         self.augmentation_config = augmentation_config
-        self.running_processes = {}  # Store currently running worker processes
-        self.pending_tasks = []      # Store pending tasks as a queue
+        self.running_processes = {}
+        self.pending_tasks = []
 
-        # Timer to periodically check for completed processes
         self.timer = QTimer()
         self.timer.timeout.connect(self._check_running_processes)
         self.timer.start(100)
@@ -208,20 +205,17 @@ class WorkerManager(QObject):
             worker_process = Process(target=worker.run, name=f"{COLOR_GREEN}Worker [{name}]{COLOR_RESET}")
             worker_process.start()
 
-            # Track the worker process
             self.running_processes[worker.uuid] = {"process": worker_process, "parent_conn": parent_conn, "child_conn": child_conn, "task": pending_task}
             logging.info(f"{self.name}: {COLOR_BLUE}Started Worker process for [{name}].{COLOR_RESET}")
 
     def _check_running_processes(self):
-        # Check for completed processes
         termination_uuid_list = []
-        for worker_uuid in self.running_processes.keys():  # Copy list to allow modification
+        for worker_uuid in list(self.running_processes.keys()):
             process = self.running_processes[worker_uuid]["process"]
             parent_conn = self.running_processes[worker_uuid]["parent_conn"]
-            child_conn = self.running_processes[worker_uuid]["child_conn"]
             task = self.running_processes[worker_uuid]["task"]
 
-            if not process.is_alive():  # Process was silently closed
+            if not process.is_alive():
                 logging.error(f"Worker[{worker_uuid}] was closed silently. Will reschedule his task: {task}")
                 self.pending_tasks.append(task)
                 termination_uuid_list.append(worker_uuid)
@@ -235,7 +229,7 @@ class WorkerManager(QObject):
             parent_conn = self.running_processes[worker_uuid]["parent_conn"]
             child_conn = self.running_processes[worker_uuid]["child_conn"]
 
-            process.join()  # Clean up the process
+            process.join()
             process.terminate()
             parent_conn.close()
             child_conn.close()
@@ -243,14 +237,11 @@ class WorkerManager(QObject):
             self.running_processes.pop(worker_uuid)
             logging.info(f"{self.name}: {COLOR_BLUE}Worker process completed and cleaned up.{COLOR_RESET}")
 
-        # Assign more tasks if there are available slots
         self._assign_tasks()
 
-        # Exit application if all tasks and processes are complete
         if not self.pending_tasks and not self.running_processes:
             logging.info(f"{self.name}: {COLOR_BLUE}All tasks completed. Exiting application.{COLOR_RESET}")
-            self.timer.stop()
-            QCoreApplication.quit()
+            confirm_exit()
 
 def confirm_exit():
     os.system('pause')
@@ -268,10 +259,19 @@ def load_config() -> dict:
         base_path = Path(__file__).resolve().parent
 
     config_file = base_path / "augmentation_config.txt"
-    print("Looking for config file at:", config_file)
+    logging.info(f"Looking for config file at: {config_file}")
     if not config_file.is_file():
-        logging.error("Configuration file augmentation_config.txt not found in the current directory.")
-        confirm_exit()
+        logging.error("Configuration file augmentation_config.txt not found in the current directory. Please select location of augmentation_config.txt")
+        # Show file selection dialog
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        selected_file, _ = QFileDialog.getOpenFileName(None, "Select augmentation_config.txt", str(base_path), "Text Files (*.txt)")
+        if not selected_file:
+            logging.error("No configuration file selected. Exiting.")
+            confirm_exit()
+        config_file = Path(selected_file)
+        logging.info(f"Using config file:{config_file}")
 
     config_data = {}
     with config_file.open("r") as f:
@@ -285,14 +285,13 @@ def load_config() -> dict:
             key, val = line.split("=", 1)
             config_data[key.strip()] = val.strip()
 
-    # Define the expected configuration keys and their requirements.
     config_schema = {
         "MAX_CONCURRENT_PROCESSES": {"type": int, "default": 16},
         "AUGMENTATION_AMOUNT": {"type": int, "default": 20},
         "SCALE_RANGE": {"type": tuple, "length": 2, "default": (0.8, 1.2)},
         "ROTATION_RANGE": {"type": tuple, "length": 2, "default": (-45, 45)},
         "GAUSSIAN_NOISE_RANGE": {"type": tuple, "length": 2, "default": (0, 0.1 * 255)},
-        "SALT_AND_PEPPER_NOSE_RANGE": {"type": tuple, "length": 2, "default": (0.01, 0.05)},
+        "SALT_AND_PEPPER_NOISE_RANGE": {"type": tuple, "length": 2, "default": (0.01, 0.05)},
         "POISSON_NOISE_RANGE": {"type": tuple, "length": 2, "default": (0, 8)}
     }
 
@@ -302,8 +301,6 @@ def load_config() -> dict:
             logging.error(f"Missing configuration key: {key}")
             confirm_exit()
         try:
-            # Evaluate the value with restricted globals.
-            # This allows arithmetic expressions like "0.1 * 255" to be computed.
             value = eval(config_data[key], {"__builtins__": {}})
         except Exception as e:
             logging.error(f"Error evaluating configuration key '{key}': {e}")
@@ -316,7 +313,6 @@ def load_config() -> dict:
             if not isinstance(value, tuple) or len(value) != schema["length"]:
                 logging.error(f"Configuration key '{key}' must be a tuple of length {schema['length']}. Got {value}")
                 confirm_exit()
-            # Check that each element is a number (int or float)
             for element in value:
                 if not isinstance(element, (int, float)):
                     logging.error(f"Configuration key '{key}' must be a tuple of numbers. Got element {element} of type {type(element)}")
@@ -324,14 +320,22 @@ def load_config() -> dict:
         config[key] = value
     return config
 
+
 if __name__ == "__main__":
     from multiprocessing import freeze_support
+
     freeze_support()
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     print(f"Available devices: {tf.config.list_physical_devices()}")
+
+    # Load configuration; this may create a QApplication if needed.
     config = load_config()
-    app = QCoreApplication(sys.argv)
-    manager = WorkerManager(process_count=config["MAX_CONCURRENT_PROCESSES"], augmentation_config=config)
+
+    # Reuse the existing QApplication instance if available.
+    app = QApplication.instance() or QApplication(sys.argv)
+
     aug_tasks = get_augmentation_tasks(config["AUGMENTATION_AMOUNT"])
+    manager = WorkerManager(process_count=config["MAX_CONCURRENT_PROCESSES"], augmentation_config=config)
     manager.run_workers(aug_tasks)
     sys.exit(app.exec())

@@ -5,12 +5,23 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
+from PySide6.QtWidgets import QApplication, QFileDialog
 from sklearn.model_selection import train_test_split
 
-from neural_network_playground.core.helper import construct_pairs, create_dataset, get_directories
-from neural_network_playground.core.models import build_resnet34_model, build_conv_model
+from core.models import build_conv_model, build_resnet34_model
+from core.utilities.helper import get_directories, create_dataset, construct_pairs
 from neural_network_playground.models.classification import ClassificationModel
 from neural_network_playground.models.crop import CropModel
+
+if getattr(sys, 'frozen', False):
+    base_path = Path(sys.executable).resolve().parent
+else:
+    base_path = Path(__file__).resolve().parent
+
+
+def confirm_exit():
+    os.system('pause')
+    sys.exit(1)
 
 
 def load_config():
@@ -26,13 +37,24 @@ def load_config():
         classification_epochs = 100
         seed = 42
     """
-    # Use the directory of the current file
-    config_file = Path(__file__).resolve().parent / "train_configuration.txt"
+    config_file = base_path / "train_configuration.txt"
+    print(f"Looking for config file at: {config_file}")
     if not config_file.is_file():
-        print("Configuration file train_configuration.txt not found in the script directory!")
-        sys.exit(1)
+        print(
+            "Configuration file train_configuration.txt not found in the current directory. Please select location of augmentation_config.txt")
+        # Show file selection dialog
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        selected_file, _ = QFileDialog.getOpenFileName(None, "Select train configuration text file", str(base_path),
+                                                       "Text Files (*.txt)")
+        if not selected_file:
+            print("No configuration file selected. Exiting.")
+            confirm_exit()
+        config_file = Path(selected_file)
+    print(f"Using config file:{config_file}")
 
-    config = {}
+    config_data = {}
     with config_file.open("r") as f:
         for line in f:
             line = line.strip()
@@ -40,33 +62,71 @@ def load_config():
                 continue
             if "=" not in line:
                 print(f"Invalid configuration line: {line}")
-                sys.exit(1)
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip()
-            try:
-                # Use eval() to allow arithmetic expressions (e.g. "1e-5" or "(128, 128)")
-                config[key] = eval(value, {"__builtins__": {}})
-            except Exception as e:
-                print(f"Error evaluating configuration for key '{key}': {e}")
-                sys.exit(1)
+                confirm_exit()
+            key, val = line.split("=", 1)
+            config_data[key.strip()] = val.strip()
+
+    config_schema = {
+        "CROP_SHAPE": {"type": tuple, "length": 2, "default": (128, 128)},
+        "CLASSIFICATION_SHAPE": {"type": tuple, "length": 2, "default": (512, 512)},
+        "VALIDATION_SPLIT": {"type": float, "default": 0.2},
+        "BATCH_SIZE": {"type": int, "default": 1},
+        "LR": {"type": float, "default": 1e-5},
+        "CROP_EPOCHS": {"type": int, "default": 25},
+        "CLASSIFICATION_EPOCHS": {"type": int, "default": 100},
+        "SEED": {"type": int, "default": 42},
+    }
+
+    config = {}
+    for key, schema in config_schema.items():
+        if key not in config_data:
+            print(f"Missing configuration key: {key}")
+            confirm_exit()
+        try:
+            value = eval(config_data[key], {"__builtins__": {}})
+        except Exception as e:
+            print(f"Error evaluating configuration key '{key}': {e}")
+            confirm_exit()
+        if schema["type"] == int:
+            if not isinstance(value, int):
+                print(f"Configuration key '{key}' must be an integer. Got {value} of type {type(value)}")
+                confirm_exit()
+        elif schema["type"] == tuple:
+            if not isinstance(value, tuple) or len(value) != schema["length"]:
+                print(f"Configuration key '{key}' must be a tuple of length {schema['length']}. Got {value}")
+                confirm_exit()
+            for element in value:
+                if not isinstance(element, (int, float)):
+                    print(
+                        f"Configuration key '{key}' must be a tuple of numbers. Got element {element} of type {type(element)}")
+                    confirm_exit()
+        config[key] = value
     return config
+
+
+def dir_dialog():
+    app = QApplication.instance() or QApplication(sys.argv)
+    selected_directory = QFileDialog.getExistingDirectory(None, "Select image catalog directory")
+    if not selected_directory:
+        print("No image catalog directory selected. Exiting.")
+        confirm_exit()
+    print(f"Using image catalog directory: {selected_directory}")
+    return Path(selected_directory)
 
 
 if __name__ == "__main__":
     # Ask the user for the input directory (dataset) and the testrun name.
-    input_dir = input("Enter the input directory for training data: ").strip()
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    config = load_config()
+    catalog_path = dir_dialog()
     testrun_name = input(
         "Enter the testrun name (this will be used for the output directory and model names): ").strip()
 
     # Set paths relative to the script's directory.
-    script_dir = Path(__file__).resolve().parent
-    catalog_path = Path(input_dir)  # this replaces the previously hard-coded catalog path
-    output_dir = script_dir / testrun_name
+    output_dir = base_path / testrun_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load hyperparameter configuration from train_configuration.txt.
-    config = load_config()
     crop_shape = config.get("crop_shape", (128, 128))
     classification_shape = config.get("classification_shape", (512, 512))
     validation_split = config.get("validation_split", 0.2)
@@ -204,5 +264,4 @@ if __name__ == "__main__":
         checkpoint_dir=classification_model_dir
     )
 
-    # Optionally, you can save the final model
-    # classification_model.model.save(model_path)
+    confirm_exit()

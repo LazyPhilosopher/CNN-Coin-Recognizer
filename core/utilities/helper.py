@@ -3,22 +3,14 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Any, Union, Tuple, cast
 
 import cv2
 import imgaug as ia
 import imgaug.augmenters as iaa
 import numpy as np
-import onnxruntime as ort
 import tensorflow as tf
-from PIL import Image
-from PIL.Image import Image as PILImage
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QTabWidget
-
-from core.utilities.bg import get_concat_v_multi, apply_background_color, naive_cutout, putalpha_cutout, \
-    alpha_matting_cutout, post_process
-from core.utilities.u2net.session.u2net import U2netSession
 
 
 # u2net = U2netSession("u2net", ort.SessionOptions(), None, (), ())

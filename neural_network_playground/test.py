@@ -1,7 +1,9 @@
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
+from PySide6.QtWidgets import QApplication, QFileDialog
 from matplotlib import pyplot as plt
 from sklearn.metrics import (ConfusionMatrixDisplay, confusion_matrix,
                              classification_report, accuracy_score,
@@ -13,34 +15,133 @@ from core.utilities.helper import get_files, get_directories, apply_rgb_mask, lo
 from neural_network_playground.models.classification import ClassificationModel
 from neural_network_playground.models.crop import CropModel
 
-trained_model_dir = Path(os.path.dirname(__file__), "trained")
-# catalog_path = Path("D:/Projects/bachelor_thesis/NN-Coin-Recognizer/ImageCollector/coin_catalog/augmented_50")
-crop_shape = (128, 128)
-classification_shape = (512, 512)
 
-# crop_model_name = "image_dataset_first_testrun_crop_model"
-# classification_model_name = "first_testrun_classification_model_30"
+if getattr(sys, 'frozen', False):
+    base_path = Path(sys.executable).resolve().parent
+else:
+    base_path = Path(__file__).resolve().parent
+
+
+def confirm_exit():
+    os.system('pause')
+    sys.exit(1)
+
+def load_config():
+    """
+    Load training hyperparameters from train_configuration.txt located in the same directory as this script.
+    Expected keys (for example):
+        crop_shape = (128, 128)
+        classification_shape = (512, 512)
+        validation_split = 0.2
+        batch_size = 1
+        lr = 1e-5
+        crop_epochs = 25
+        classification_epochs = 100
+        seed = 42
+    """
+    config_file = base_path / "train_configuration.txt"
+    print(f"Looking for config file at: {config_file}")
+    if not config_file.is_file():
+        print(
+            "Configuration file train_configuration.txt not found in the current directory. Please select location of augmentation_config.txt")
+        # Show file selection dialog
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        selected_file, _ = QFileDialog.getOpenFileName(None, "Select train configuration text file", str(base_path),
+                                                       "Text Files (*.txt)")
+        if not selected_file:
+            print("No configuration file selected. Exiting.")
+            confirm_exit()
+        config_file = Path(selected_file)
+    print(f"Using config file:{config_file}")
+
+    config_data = {}
+    with config_file.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                print(f"Invalid configuration line: {line}")
+                confirm_exit()
+            key, val = line.split("=", 1)
+            config_data[key.strip()] = val.strip()
+
+    config_schema = {
+        "CROP_SHAPE": {"type": tuple, "length": 2, "default": (128, 128)},
+        "CLASSIFICATION_SHAPE": {"type": tuple, "length": 2, "default": (512, 512)},
+        "SEED": {"type": int, "default": 42},
+    }
+
+    config = {}
+    for key, schema in config_schema.items():
+        if key not in config_data:
+            print(f"Missing configuration key: {key}")
+            confirm_exit()
+        try:
+            value = eval(config_data[key], {"__builtins__": {}})
+        except Exception as e:
+            print(f"Error evaluating configuration key '{key}': {e}")
+            confirm_exit()
+        if schema["type"] == int:
+            if not isinstance(value, int):
+                print(f"Configuration key '{key}' must be an integer. Got {value} of type {type(value)}")
+                confirm_exit()
+        elif schema["type"] == tuple:
+            if not isinstance(value, tuple) or len(value) != schema["length"]:
+                print(f"Configuration key '{key}' must be a tuple of length {schema['length']}. Got {value}")
+                confirm_exit()
+            for element in value:
+                if not isinstance(element, (int, float)):
+                    print(
+                        f"Configuration key '{key}' must be a tuple of numbers. Got element {element} of type {type(element)}")
+                    confirm_exit()
+        config[key] = value
+    return config
+
+
+def dir_dialog():
+    app = QApplication.instance() or QApplication(sys.argv)
+    selected_directory = QFileDialog.getExistingDirectory(None, "Select image catalog directory")
+    if not selected_directory:
+        print("No image catalog directory selected. Exiting.")
+        confirm_exit()
+    print(f"Using image catalog directory: {selected_directory}")
+    return Path(selected_directory)
+
 
 if __name__ == "__main__":
     # Ask user for the testrun directory (which should contain both models)
-    testrun_dir_input = input("Enter the testrun directory (containing crop and classification models): ").strip()
-    testrun_dir = Path(testrun_dir_input)
-    if not testrun_dir.is_dir():
-        print(f"Provided testrun directory does not exist: {testrun_dir}")
-        exit(-1)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    config = load_config()
+    # Load hyperparameter configuration from train_configuration.txt.
+    crop_shape = config.get("crop_shape", (128, 128))
+    classification_shape = config.get("classification_shape", (512, 512))
+    seed = config.get("seed", 42)
+
+    # Select trained model directory
+    app = QApplication.instance() or QApplication(sys.argv)
+    selected_directory = QFileDialog.getExistingDirectory(None, "Select trained model directory")
+    if not selected_directory:
+        print("No trained model directory selected. Exiting.")
+        confirm_exit()
+    print(f"Using trained model directory: {selected_directory}")
+    testrun_dir = Path(selected_directory)
+
+    # Select image catalog directory
+    selected_directory = QFileDialog.getExistingDirectory(None, "Select augmented image catalog directory")
+    if not selected_directory:
+        print("No augmented image catalog directory selected. Exiting.")
+        confirm_exit()
+    print(f"Using augmented image catalog directory: {selected_directory}")
+    catalog_path = Path(selected_directory)
 
     # Derive the testrun name from the provided directory.
     testrun_name = testrun_dir.name
     # Models are expected to be stored in subdirectories with names following this structure:
     crop_model_name = f"{testrun_name}_crop_model"
     classification_model_name = f"{testrun_name}_classification_model"
-
-    # Ask user for the catalog path (the directory that contains the images folder)
-    catalog_path_input = input("Enter the catalog path: ").strip()
-    catalog_path = Path(catalog_path_input)
-    if not catalog_path.is_dir():
-        print(f"Provided catalog path does not exist: {catalog_path}")
-        exit(-1)
 
     # Instantiate the model classes.
     crop_model = CropModel(crop_shape)
@@ -52,7 +153,7 @@ if __name__ == "__main__":
     images_dir = catalog_path / "images"
     if not images_dir.is_dir():
         print(f"'images' directory not found under the provided catalog path: {images_dir}")
-        exit(-1)
+        confirm_exit()
 
     for coin_dir_path in get_directories(images_dir):
         for image_path in get_files(coin_dir_path):
@@ -72,7 +173,7 @@ if __name__ == "__main__":
     except Exception as ex:
         print("=== Could not load models/datasets ===")
         print(f"Exception: {ex}")
-        exit(-1)
+        confirm_exit()
 
     true_classes = []
     predicted_classes = []
@@ -118,7 +219,8 @@ if __name__ == "__main__":
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
     disp.plot(cmap=plt.cm.Blues, xticks_rotation='vertical')
     plt.title("Confusion Matrix")
-    plt.savefig("confusion_matrix.png")
+    plt.tight_layout()
+    plt.savefig(f"{testrun_name}_confusion_matrix.png", bbox_inches='tight')
     plt.show()
 
     # Compute and print additional metrics
@@ -137,3 +239,4 @@ if __name__ == "__main__":
     report = classification_report(true_classes, predicted_classes, labels=labels, zero_division=0)
     print("\nClassification Report:")
     print(report)
+    confirm_exit()
