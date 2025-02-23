@@ -225,7 +225,7 @@ if __name__ == "__main__":
     ax.tick_params(axis='both', labelsize=14)
 
     # Optionally, adjust spacing between subplots if needed.
-    plt.subplots_adjust(left=0.35, right=0.95, top=0.90, bottom=0.15)
+    plt.subplots_adjust(left=0.35, right=0.95, top=0.90, bottom=0.35)
 
     plt.savefig("confusion_matrix.png", dpi=300)
     plt.show()
