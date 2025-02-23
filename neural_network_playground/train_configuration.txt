@@ -1,8 +1,8 @@
-crop_shape = (128, 128)
-classification_shape = (512, 512)
-validation_split = 0.2
-batch_size = 1
-lr = 1e-5
-crop_epochs = 25
-classification_epochs = 100
-seed = 42
+CROP_SHAPE = (128, 128)
+CLASSIFICATION_SHAPE = (512, 512)
+VALIDATION_SPLIT = 0.2
+BATCH_SIZE = 1
+LR = 1e-5
+CROP_EPOCHS = 25
+CLASSIFICATION_EPOCHS = 100
+SEED = 42

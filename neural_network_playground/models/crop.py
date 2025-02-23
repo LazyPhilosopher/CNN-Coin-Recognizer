@@ -4,9 +4,13 @@ from pathlib import Path
 import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 
-from image_collector.core.utilities.helper import get_files
-from neural_network_playground.core.helper import threshold_to_black_and_white, apply_rgb_mask, save_tensor_as_png, \
-    get_directories
+from core.utilities.helper import save_tensor_as_png, get_directories, apply_rgb_mask, get_files, \
+    threshold_to_black_and_white
+
+
+# from image_collector.core.utilities.helper import get_files
+# from neural_network_playground.core.helper import threshold_to_black_and_white, apply_rgb_mask, save_tensor_as_png, \
+#     get_directories
 
 
 class CropModel:
